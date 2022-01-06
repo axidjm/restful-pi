@@ -1,13 +1,18 @@
+#!/usr/bin/python
+
+# Raspberry Pi GPIO-controlled REST API
+
 from flask import Flask
-from flask_restplus import Api, Resource, fields
+from flask_restx import Api, Resource, fields
 import RPi.GPIO as GPIO
 
+import time
 
 app = Flask(__name__)
 api = Api(app,
-          version='1.0',
-          title='RESTful Pi',
-          description='A RESTful API to control the GPIO pins of a Raspbery Pi',
+          version='1.1',
+          title='RESTFUL Pi++',
+          description='A RESTFUL API to control the GPIO pins of a Raspberry Pi',
           doc='/docs')
 
 ns = api.namespace('pins', description='Pin related operations')
@@ -15,15 +20,23 @@ ns = api.namespace('pins', description='Pin related operations')
 pin_model = api.model('pins', {
     'id': fields.Integer(readonly=True, description='The pin unique identifier'),
     'pin_num': fields.Integer(required=True, description='GPIO pin associated with this endpoint'),
-    'color': fields.String(required=True, description='LED color'),
-    'state': fields.String(required=True, description='LED on or off')
+    'color': fields.String(required=False, description='LED color (multiples allowed)'),
+    'name': fields.String(required=False, description='function name (must be unique)'),
+    'state': fields.String(required=False, description='LED on or off'),
+    'direction': fields.String(required=True, description='in (for opto input) or out (for LED/relay)'),
+    'rising_url': fields.String(required=False, description='URL to PUT on rising edge of input'),
+    'falling_url': fields.String(required=False, description='URL to PUT on falling edge of input'),
 })
 
+# Duration of a bell pulse when you set the state to 'pulse'
+pulse_period = 0.2
+last_pinchange_time = time.clock_gettime()
 
 class PinUtil(object):
     def __init__(self):
         self.counter = 0
         self.pins = []
+
 
     def get(self, id):
         for pin in self.pins:
@@ -31,10 +44,24 @@ class PinUtil(object):
                 return pin
         api.abort(404, f"pin {id} doesn't exist.")
 
+
     def create(self, data):
         pin = data
         pin['id'] = self.counter = self.counter + 1
         self.pins.append(pin)
+        
+        if pin['direction'] == 'in':
+            GPIO.setup(pin['pin_num'], GPIO.IN, pull_up_down=GPIO.PUD_UP)
+            pin['state'] = 'on' if GPIO.input(pin['pin_num']) else 'off'
+
+            if pin['rising_url']:
+                GPIO.add_event_detect(pin['pin_num'], GPIO.RISING, callback=self.pin_change,
+                                  bouncetime=self._GPIO_BOUNCE_TIME)
+            if pin['falling_url']:
+                GPIO.add_event_detect(pin['pin_num'], GPIO.FALLING, callback=self.pin_change,
+                                  bouncetime=self._GPIO_BOUNCE_TIME)
+            return pin
+            
         GPIO.setup(pin['pin_num'], GPIO.OUT)
 
         if pin['state'] == 'off':
@@ -43,23 +70,52 @@ class PinUtil(object):
             GPIO.output(pin['pin_num'], GPIO.HIGH)
 
         return pin
+
 
     def update(self, id, data):
         pin = self.get(id)
         pin.update(data)  # this is the dict_object update method
-        GPIO.setup(pin['pin_num'], GPIO.OUT)
+        
+        if pin['direction'] == 'in':
+            pin['state'] = 'on' if GPIO.input(pin['pin_num']) else 'off'
+            return pin
 
         if pin['state'] == 'off':
             GPIO.output(pin['pin_num'], GPIO.LOW)
         elif pin['state'] == 'on':
             GPIO.output(pin['pin_num'], GPIO.HIGH)
+        elif pin['state'] == 'pulse':
+            GPIO.output(pin['pin_num'], GPIO.HIGH)
+            time.sleep(pulse_period)
+            GPIO.output(pin['pin_num'], GPIO.LOW)
+            pin['state'] = 'off'
 
         return pin
 
-    def delete(self, id):
-        pin = self.get(id)
-        GPIO.output(pin['pin_num'], GPIO.LOW)
-        self.pins.remove(pin)
+
+    def pin_change(self, pin_num):
+        """ Send any appropriate request for the changed pin """
+        # Use a mutex lock to avoid race condition when
+        # multiple inputs change in quick succession
+        with self._mutex:
+            # If we haven't been here recently, this could be the first transition of a cluster caused by noise
+            if last_pinchange_time < time.now - 0.1:
+                time.sleep(0.1)
+                last_pinchange_time = time.now
+            new_state = 'on' if GPIO.input(pin_num) else 'off'
+            # Look for a 'pin' on this pin_num
+            for pin in pins:
+                # If found it and it has changed
+                if pin['pin_num'] == pin_num:
+                    if pin['state'] != new_state:
+                        pin['state'] = new_state
+                        if new_state == 'on' and pin['rising_url']:
+                            requests.put(pin['rising_url'], json={"state": new_state})
+                            print(pin['rising_url'], json={"state": new_state})
+                        if new_state == 'off' and pin['falling_url']:
+                            requests.put(pin['falling_url'], json={"state": new_state})
+                            print(pin['falling_url'], json={"state": new_state})
+                return
 
 
 @ns.route('/')  # keep in mind this our ns-namespace (pins/)
@@ -82,44 +138,60 @@ class PinList(Resource):
 @ns.response(404, 'pin not found')
 @ns.param('id', 'The pin identifier')
 class Pin(Resource):
-    """Show a single pin item and lets you update/delete them"""
+    """Show a single pin item and lets you update it"""
 
     @ns.marshal_with(pin_model)
     def get(self, id):
         """Fetch a pin given its resource identifier"""
         return pin_util.get(id)
 
-    @ns.response(204, 'pin deleted')
-    def delete(self, id):
-        """Delete a pin given its identifier"""
-        pin_util.delete(id)
-        return '', 204
-
-    @ns.expect(pin_model, validate=True)
+    # @ns.expect(pin_model, validate=True)
+    @ns.expect(pin_model)
     @ns.marshal_with(pin_model)
     def put(self, id):
         """Update a pin given its identifier"""
         return pin_util.update(id, api.payload)
-    
+
+@ns.route('/name/<str:name>')
+@ns.response(404, 'pin not found')
+@ns.param('name', 'The pin function name')
+class PinName(Resource):
+    """Show a single pin item and lets you update it"""
+
+    @ns.marshal_with(pin_model)
+    def get(self, name):
+        """Fetch a pin given its function name"""
+        for pin in pins:
+            if pin['name'] == name:
+                return pin_util.get(pin['id'])
+
+    # @ns.expect(pin_model, validate=True)
     @ns.expect(pin_model)
     @ns.marshal_with(pin_model)
-    def patch(self, id):
-        """Partially update a pin given its identifier"""
-        return pin_util.update(id, api.payload)
-
+    def put(self, name):
+        """Update a pin given its function name"""
+        for pin in pins:
+            if pin['name'] == name:
+                return pin_util.update(pin['id'], api.payload)
 
 GPIO.setmode(GPIO.BCM)
 
 pin_util = PinUtil()
-pin_util.create({'pin_num': 23, 'color': 'red', 'state': 'off'})
-pin_util.create({'pin_num': 24, 'color': 'yellow', 'state': 'off'})
-pin_util.create({'pin_num': 25, 'color': 'blue', 'state': 'off'})
-pin_util.create({'pin_num': 22, 'color': 'red', 'state': 'off'})
-pin_util.create({'pin_num': 12, 'color': 'yellow', 'state': 'off'})
-pin_util.create({'pin_num': 16, 'color': 'blue', 'state': 'off'})
-pin_util.create({'pin_num': 20, 'color': 'red', 'state': 'off'})
-pin_util.create({'pin_num': 21, 'color': 'green', 'state': 'off'})
-pin_util.create({'pin_num': 13, 'color': 'yellow', 'state': 'off'})
+pin_util.create({'pin_num': 21, 'name': 'appr_bell',  'state': 'off', 'direction': 'out'})
+pin_util.create({'pin_num': 20, 'name': 'tc4601',     'state': 'off', 'direction': 'out'})
+pin_util.create({'pin_num': 16, 'name': 'lh-bj-bell', 'state': 'off', 'direction': 'out'})
+pin_util.create({'pin_num': 12, 'name': 'lh-bj-lc',   'state': 'off', 'direction': 'out'})
+pin_util.create({'pin_num': 25, 'name': 'lh-bj-tol',  'state': 'off', 'direction': 'out'})
+pin_util.create({'pin_num': 24, 'name': 'lh-th-lc',   'state': 'off', 'direction': 'out'})
+pin_util.create({'pin_num': 23, 'name': 'lh-th-tol',  'state': 'off', 'direction': 'out'})
+pin_util.create({'pin_num': 18, 'name': 'lh-th-bell', 'state': 'off', 'direction': 'out'})
+
+host = 'http://192.168.1.100/apipath'
+pin_util.create({'pin_num': 17, 'name': 'th-lh-tap',  'direction': 'in', falling_url: f'{host}/th-lh-tap/on'})
+pin_util.create({'pin_num':  6, 'name': 'bj-lh-lc',   'direction': 'in', falling_url: f'{host}/bj-lh-lc/off',  rising_url: f'{host}/bj-lh-lc/on'})
+pin_util.create({'pin_num':  5, 'name': 'bj-lh-tol',  'direction': 'in', falling_url: f'{host}/bj-lh-tol/off', rising_url: f'{host}/bj-lh-tol/on'})
+pin_util.create({'pin_num': 22, 'name': 'th-lh-lc',   'direction': 'in', falling_url: f'{host}/th-lh-lc/off',  rising_url: f'{host}/th-lh-lc/on'})
+pin_util.create({'pin_num': 27, 'name': 'th-lh-tol',  'direction': 'in', falling_url: f'{host}/th-lh-tol/off', rising_url: f'{host}/th-lh-tol/on'})
 
 
 if __name__ == '__main__':

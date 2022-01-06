@@ -1,20 +1,26 @@
 # RESTful Pi
 This is a Flask app written in Python3. This app is a REST API backend to control the GPIO pins of a Raspberry Pi by making HTTP requests to the `/pins` and `/pins/<id>` endpoints. This project uses a breadboard outfitted with LEDs connected to the Raspberyy Pi's GPIO pins to demonstrate the correct function of the API calls. This app could easily be extended to trigger and process more complex events to control the pins of a Pi beyond lighting up a couple LEDs.
 
+It builds on the original version by avcourt by allowing you to define URLs that will be posted to when a pin changes, and adding a PULSE option.
+
 A step-by-step tutorial I wrote to get started with this project can be found [here](https://avcourt.github.io/tiny-cluster/2019/09/18/pi_led.html).
 
 A video series I published on YouTube going over this project can be found [here](https://www.youtube.com/playlist?list=PLLIDdNg0t5ceg3mI3vn0YJocJ4ndMtM98).
 
 ## HTTP Methods
-These requests use the standard HTTP requests `GET`, `POST`, `PUT`, and `DELETE`. We will also use `PATCH` for partial updates to enable us to just send a `state` update to an existing pin endpoint. This will make sending requests through the Python `requests` library a little more succint, as we'll mainly be interested in changing the state for making our light show.
+These requests use the standard HTTP requests `GET`, `POST`, and `PUT` for partial updates to enable us to just send a `state` update to an existing pin endpoint. This will make sending requests through the Python `requests` library a little more succint, as we'll mainly be interested in changing the state for making our light show.
 
 The JSON model of the `pin` resource is:
 ```json 
     {
         "id": "Integer(readonly=True, description='The pin unique identifier')",
         "pin_num": "Integer(required=True, description='GPIO pin associated with this endpoint')",
-        "color": "String(required=True, description='LED color')",
-        "state": "String(required=True, description='LED on or off')"
+        "color": "String(required=True, description='LED color (multiples allowed)')",
+		"name": "String(required=False, description='function name (must be unique)')",
+		"state": "String(required=False, description='LED on or off')",
+		"direction": "String(required=True, description='in (for opto input) or out (for LED/relay)')",
+		"rising_url": "String(required=False, description='URL to PUT on rising edge of input')",
+		"falling_url": "String(required=False, description='URL to PUT on falling edge of input')"
     }
 ```
 
@@ -55,23 +61,7 @@ The HTTP verbs correspond to the typical CRUD operations:
             "state": "off"
         }
     ```
- - PUT `pins/<id>` : **Update** a pin given its resource id - STATUS 200 on success
-    - Generally in RESTful APIs a PUT should send an entire resource for updating.
-    
-    - Update all fields (except for its uid which is READONLY)
-
-     - e.g. Update all fields of pin with id 2:
-        - PUT `/pins/2` 
-            ```json
-            {
-                "pin_num": 24,
-                "color": "blue",
-                "state": "off"
-            }
-            ```
- - DELETE `pins/<id>` : **Delete** pin<id> from system - STATUS 204 : Ok, no content
-    
- - PATCH `pins/<id>` : **Partially Update** a pin given its resource id - STATUS 200 on success
+ - PUT `pins/<id>` : **Partially Update** a pin given its resource id - STATUS 200 on success
     - You can update a single field, or all fields (except for its uid which is READONLY)
     - e.g. Update the state of pin with id 2:
         - PUT `/pins/2` 
@@ -90,16 +80,22 @@ There are many kits available on Amazon for under $20.
     
 ### GPIO Pins
 This code uses the following configuration:
+host = 'http://192.168.1.100/apipath'
 ```json
-{"pin_num": 23, "color": "red",}
-{"pin_num": 24, "color": "yellow"},
-{"pin_num": 25, "color": "blue"},
-{"pin_num": 22, "color": "red"},
-{"pin_num": 12, "color": "yellow"},
-{"pin_num": 16, "color": "blue"},
-{"pin_num": 20, "color": "red"},
-{"pin_num": 21, "color": "green"},
-{"pin_num": 13, "color": "yellow"}
+{'pin_num': 21, 'name': 'appr_bell',  'state': 'off', 'direction': 'out'})
+{'pin_num': 20, 'name': 'tc4601',     'state': 'off', 'direction': 'out'})
+{'pin_num': 16, 'name': 'lh-bj-bell', 'state': 'off', 'direction': 'out'})
+{'pin_num': 12, 'name': 'lh-bj-lc',   'state': 'off', 'direction': 'out'})
+{'pin_num': 25, 'name': 'lh-bj-tol',  'state': 'off', 'direction': 'out'})
+{'pin_num': 24, 'name': 'lh-th-lc',   'state': 'off', 'direction': 'out'})
+{'pin_num': 23, 'name': 'lh-th-tol',  'state': 'off', 'direction': 'out'})
+{'pin_num': 18, 'name': 'lh-th-bell', 'state': 'off', 'direction': 'out'})
+
+{'pin_num': 17, 'name': 'th-lh-tap',  'direction': 'in', falling_url: f'{host}/th-lh-tap/on'})
+{'pin_num':  6, 'name': 'bj-lh-lc',   'direction': 'in', falling_url: f'{host}/bj-lh-lc/off',  rising_url: f'{host}/bj-lh-lc/on'}
+{'pin_num':  5, 'name': 'bj-lh-tol',  'direction': 'in', falling_url: f'{host}/bj-lh-tol/off', rising_url: f'{host}/bj-lh-tol/on')
+{'pin_num': 22, 'name': 'th-lh-lc',   'direction': 'in', falling_url: f'{host}/th-lh-lc/off',  rising_url: f'{host}/th-lh-lc/on')
+{'pin_num': 27, 'name': 'th-lh-tol',  'direction': 'in', falling_url: f'{host}/th-lh-tol/off', rising_url: f'{host}/th-lh-tol/on'}
 ```
 *Note*: **These pin numbers refer to the GPIO pin numbers, not the generic numbering**
 ![GPIO](img/rpi_gpio.jpg)
