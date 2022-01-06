@@ -16,11 +16,11 @@ The JSON model of the `pin` resource is:
         "id": "Integer(readonly=True, description='The pin unique identifier')",
         "pin_num": "Integer(required=True, description='GPIO pin associated with this endpoint')",
         "color": "String(required=True, description='LED color (multiples allowed)')",
-		"name": "String(required=False, description='function name (must be unique)')",
-		"state": "String(required=False, description='LED on or off')",
-		"direction": "String(required=True, description='in (for opto input) or out (for LED/relay)')",
-		"rising_url": "String(required=False, description='URL to PUT on rising edge of input')",
-		"falling_url": "String(required=False, description='URL to PUT on falling edge of input')"
+        "name": "String(required=False, description='function name (must be unique)')",
+        "state": "String(required=False, description='LED on or off')",
+        "direction": "String(required=True, description='in (for opto input) or out (for LED/relay)')",
+        "rising_url": "String(required=False, description='URL to PUT on rising edge of input')",
+        "falling_url": "String(required=False, description='URL to PUT on falling edge of input')"
     }
 ```
 
