@@ -177,21 +177,21 @@ class PinName(Resource):
 GPIO.setmode(GPIO.BCM)
 
 pin_util = PinUtil()
-pin_util.create({'pin_num': 21, 'name': 'appr_bell',  'state': 'off', 'direction': 'out'})
-pin_util.create({'pin_num': 20, 'name': 'tc4601',     'state': 'off', 'direction': 'out'})
-pin_util.create({'pin_num': 16, 'name': 'lh-bj-bell', 'state': 'off', 'direction': 'out'})
-pin_util.create({'pin_num': 12, 'name': 'lh-bj-lc',   'state': 'off', 'direction': 'out'})
-pin_util.create({'pin_num': 25, 'name': 'lh-bj-tol',  'state': 'off', 'direction': 'out'})
-pin_util.create({'pin_num': 24, 'name': 'lh-th-lc',   'state': 'off', 'direction': 'out'})
-pin_util.create({'pin_num': 23, 'name': 'lh-th-tol',  'state': 'off', 'direction': 'out'})
-pin_util.create({'pin_num': 18, 'name': 'lh-th-bell', 'state': 'off', 'direction': 'out'})
+pin_util.create({"pin_num": 21, "name": "appr_bell",  "state": "off", "direction": "out"})
+pin_util.create({"pin_num": 20, "name": "tc4601",     "state": "off", "direction": "out"})
+pin_util.create({"pin_num": 16, "name": "lh-bj-bell", "state": "off", "direction": "out"})
+pin_util.create({"pin_num": 12, "name": "lh-bj-lc",   "state": "off", "direction": "out"})
+pin_util.create({"pin_num": 25, "name": "lh-bj-tol",  "state": "off", "direction": "out"})
+pin_util.create({"pin_num": 24, "name": "lh-th-lc",   "state": "off", "direction": "out"})
+pin_util.create({"pin_num": 23, "name": "lh-th-tol",  "state": "off", "direction": "out"})
+pin_util.create({"pin_num": 18, "name": "lh-th-bell", "state": "off", "direction": "out"})
 
-host = 'http://192.168.1.100/apipath'
-pin_util.create({'pin_num': 17, 'name': 'th-lh-tap',  'direction': 'in', falling_url: f'{host}/th-lh-tap/on'})
-pin_util.create({'pin_num':  6, 'name': 'bj-lh-lc',   'direction': 'in', falling_url: f'{host}/bj-lh-lc/off',  rising_url: f'{host}/bj-lh-lc/on'})
-pin_util.create({'pin_num':  5, 'name': 'bj-lh-tol',  'direction': 'in', falling_url: f'{host}/bj-lh-tol/off', rising_url: f'{host}/bj-lh-tol/on'})
-pin_util.create({'pin_num': 22, 'name': 'th-lh-lc',   'direction': 'in', falling_url: f'{host}/th-lh-lc/off',  rising_url: f'{host}/th-lh-lc/on'})
-pin_util.create({'pin_num': 27, 'name': 'th-lh-tol',  'direction': 'in', falling_url: f'{host}/th-lh-tol/off', rising_url: f'{host}/th-lh-tol/on'})
+host = "http://192.168.1.100/apipath"
+pin_util.create({"pin_num": 17, "name": "th-lh-tap",  "direction": "in", falling_url: f"{host}/th-lh-tap/on"})
+pin_util.create({"pin_num":  6, "name": "bj-lh-lc",   "direction": "in", falling_url: f"{host}/bj-lh-lc/off",  rising_url: f"{host}/bj-lh-lc/on"})
+pin_util.create({"pin_num":  5, "name": "bj-lh-tol",  "direction": "in", falling_url: f"{host}/bj-lh-tol/off", rising_url: f"{host}/bj-lh-tol/on"})
+pin_util.create({"pin_num": 22, "name": "th-lh-lc",   "direction": "in", falling_url: f"{host}/th-lh-lc/off",  rising_url: f"{host}/th-lh-lc/on"})
+pin_util.create({"pin_num": 27, "name": "th-lh-tol",  "direction": "in", falling_url: f"{host}/th-lh-tol/off", rising_url: f"{host}/th-lh-tol/on"})
 
 
 if __name__ == '__main__':
