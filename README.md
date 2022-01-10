@@ -91,11 +91,11 @@ host = 'http://192.168.1.100/apipath'
 {"pin_num": 23, "name": "lh-th-tol",  "state": "off", "direction": "out"},
 {"pin_num": 18, "name": "lh-th-bell", "state": "off", "direction": "out"},
 
-{"pin_num": 17, "name": "th-lh-tap",  "direction": "in", falling_url: f"{host}/th-lh-tap/on"},
-{"pin_num":  6, "name": "bj-lh-lc",   "direction": "in", falling_url: f"{host}/bj-lh-lc/off",  rising_url: f"{host}/bj-lh-lc/on"},
-{"pin_num":  5, "name": "bj-lh-tol",  "direction": "in", falling_url: f"{host}/bj-lh-tol/off", rising_url: f"{host}/bj-lh-tol/on"},
-{"pin_num": 22, "name": "th-lh-lc",   "direction": "in", falling_url: f"{host}/th-lh-lc/off",  rising_url: f"{host}/th-lh-lc/on"},
-{"pin_num": 27, "name": "th-lh-tol",  "direction": "in", falling_url: f"{host}/th-lh-tol/off", rising_url: f"{host}/th-lh-tol/on"}
+{"pin_num": 17, "name": "th-lh-tap",  "direction": "in", "falling_url": "{host}/th-lh-tap/on"},
+{"pin_num":  6, "name": "bj-lh-lc",   "direction": "in", "falling_url": "{host}/bj-lh-lc/off",  "rising_url": "{host}/bj-lh-lc/on"},
+{"pin_num":  5, "name": "bj-lh-tol",  "direction": "in", "falling_url": "{host}/bj-lh-tol/off", "rising_url": "{host}/bj-lh-tol/on"},
+{"pin_num": 22, "name": "th-lh-lc",   "direction": "in", "falling_url": "{host}/th-lh-lc/off",  "rising_url": "{host}/th-lh-lc/on"},
+{"pin_num": 27, "name": "th-lh-tol",  "direction": "in", "falling_url": "{host}/th-lh-tol/off", "rising_url": "{host}/th-lh-tol/on"}
 ```
 *Note*: **These pin numbers refer to the GPIO pin numbers, not the generic numbering**
 ![GPIO](img/rpi_gpio.jpg)
