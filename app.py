@@ -5,7 +5,7 @@
 from flask import Flask
 from flask_restx import Api, Resource, fields
 import RPi.GPIO as GPIO
-
+import requests
 import time
 
 app = Flask(__name__)
@@ -32,7 +32,6 @@ pin_model = api.model('pins', {
 
 # Duration of a bell pulse when you set the state to 'pulse'
 pulse_period = 0.2
-last_pinchange_time = time.clock_gettime(1)
 
 class PinUtil(object):
     def __init__(self):
@@ -51,6 +50,7 @@ class PinUtil(object):
         pin = data
         pin['id'] = self.counter = self.counter + 1
         self.pins.append(pin)
+        self.last_pinchange_time = time.clock_gettime(1)
         
         if pin['direction'] == 'in':
             GPIO.setup(pin['pin_num'], GPIO.IN, pull_up_down=GPIO.PUD_UP)
@@ -102,28 +102,32 @@ class PinUtil(object):
 
 
     def pin_change(self, pin_num):
-        """ Send any appropriate request for the changed pin """
-        # Use a mutex lock to avoid race condition when
-        # multiple inputs change in quick succession
-        with self._mutex:
+            """ Send any appropriate request for the changed pin """
+            # Use a mutex lock to avoid race condition when
+            # multiple inputs change in quick succession
+            #with self._mutex:
             # If we haven't been here recently, this could be the first transition of a cluster caused by noise
-            if last_pinchange_time < time.clock_gettime(1) - 0.1:
+            if self.last_pinchange_time < time.clock_gettime(1) - 0.1:
                 time.sleep(0.1)
-                last_pinchange_time = time.clock_gettime(1)
+                self.last_pinchange_time = time.clock_gettime(1)
             new_state = 'on' if GPIO.input(pin_num) else 'off'
+            print (f"pin {pin_num} state {new_state}")
             # Look for a 'pin' on this pin_num
-            for pin in pins:
+            for pin in pin_util.pins:
+                # print (f"Comparing {pin_num} to {pin['pin_num']} and {pin['state']} to {new_state}")
                 # If found it and it has changed
                 if pin['pin_num'] == pin_num:
+                    print ("Found pin", pin_num)
                     if pin['state'] != new_state:
+                        print ("Pin changed state from ", pin['state'], " to ", new_state)
                         pin['state'] = new_state
                         if new_state == 'on' and 'rising_url' in pin:
+                            print(pin['rising_url'], new_state)
                             requests.put(pin['rising_url'], json={"state": new_state})
-                            print(pin['rising_url'], json={"state": new_state})
                         if new_state == 'off' and 'falling_url' in pin:
+                            print(pin['falling_url'], new_state)
                             requests.put(pin['falling_url'], json={"state": new_state})
-                            print(pin['falling_url'], json={"state": new_state})
-                return
+                    return
 
 
 @ns.route('/')  # keep in mind this our ns-namespace (pins/)
@@ -169,7 +173,7 @@ class PinName(Resource):
     @ns.marshal_with(pin_model)
     def get(self, name):
         """Fetch a pin given its function name"""
-        for pin in pins:
+        for pin in pin_util.pins:
             if pin['name'] == name:
                 return pin_util.get(pin['id'])
 
@@ -178,7 +182,7 @@ class PinName(Resource):
     @ns.marshal_with(pin_model)
     def put(self, name):
         """Update a pin given its function name"""
-        for pin in pins:
+        for pin in pin_util.pins:
             if pin['name'] == name:
                 return pin_util.update(pin['id'], api.payload)
 
