@@ -117,16 +117,16 @@ class PinUtil(object):
                 # print (f"Comparing {pin_num} to {pin['pin_num']} and {pin['state']} to {new_state}")
                 # If found it and it has changed
                 if pin['pin_num'] == pin_num:
-                    print ("Found pin", pin_num)
+                    print ("Found pin", pin_num, pin['name'])
                     if pin['state'] != new_state:
-                        print ("Pin changed state from ", pin['state'], " to ", new_state)
+                        print ("Pin changed state from", pin['state'], "to", new_state)
                         pin['state'] = new_state
                         if new_state == 'on' and 'rising_url' in pin:
                             print(pin['rising_url'], new_state)
-                            requests.put(pin['rising_url'], json={"state": new_state})
+                            # requests.put(pin['rising_url'], json={"state": new_state})
                         if new_state == 'off' and 'falling_url' in pin:
                             print(pin['falling_url'], new_state)
-                            requests.put(pin['falling_url'], json={"state": new_state})
+                            # requests.put(pin['falling_url'], json={"state": new_state})
                     return
 
 
@@ -172,38 +172,60 @@ class PinName(Resource):
 
     @ns.marshal_with(pin_model)
     def get(self, name):
+        print('Getting pin with name', name)
         """Fetch a pin given its function name"""
         for pin in pin_util.pins:
+            # print('Checking', pin['name'])
             if pin['name'] == name:
+                print('Found', pin['name'])
                 return pin_util.get(pin['id'])
-
+                return pin_util.update(pin['id'], api.payload)
+        print('Not Found')
+        return False
+    
     # @ns.expect(pin_model, validate=True)
     @ns.expect(pin_model)
     @ns.marshal_with(pin_model)
     def put(self, name):
+        print('Putting pin with name', name)
         """Update a pin given its function name"""
         for pin in pin_util.pins:
+            # print('Checking', pin['name'])
             if pin['name'] == name:
+                print('Found', pin['name'])
                 return pin_util.update(pin['id'], api.payload)
+        print('Not Found')
+        return False
 
 GPIO.setmode(GPIO.BCM)
-
-pin_util = PinUtil()
-pin_util.create({'pin_num': 21, 'name': 'appr_bell',  'state': 'off', 'direction': 'out'})
-pin_util.create({'pin_num': 20, 'name': 'tc4601',     'state': 'off', 'direction': 'out'})
-pin_util.create({'pin_num': 16, 'name': 'lh-bj-bell', 'state': 'off', 'direction': 'out'})
-pin_util.create({'pin_num': 12, 'name': 'lh-bj-lc',   'state': 'off', 'direction': 'out'})
-pin_util.create({'pin_num': 25, 'name': 'lh-bj-tol',  'state': 'off', 'direction': 'out'})
-pin_util.create({'pin_num': 24, 'name': 'lh-th-lc',   'state': 'off', 'direction': 'out'})
-pin_util.create({'pin_num': 23, 'name': 'lh-th-tol',  'state': 'off', 'direction': 'out'})
-pin_util.create({'pin_num': 18, 'name': 'lh-th-bell', 'state': 'off', 'direction': 'out'})
-
 host = 'http://192.168.1.100/apipath'
-pin_util.create({'pin_num': 17, 'name': 'th-lh-tap',  'direction': 'in', 'falling_url': f'{host}/th-lh-tap/on'})
-pin_util.create({'pin_num':  6, 'name': 'bj-lh-lc',   'direction': 'in', 'falling_url': f'{host}/bj-lh-lc/off',  'rising_url': f'{host}/bj-lh-lc/on'})
-pin_util.create({'pin_num':  5, 'name': 'bj-lh-tol',  'direction': 'in', 'falling_url': f'{host}/bj-lh-tol/off', 'rising_url': f'{host}/bj-lh-tol/on'})
-pin_util.create({'pin_num': 22, 'name': 'th-lh-lc',   'direction': 'in', 'falling_url': f'{host}/th-lh-lc/off',  'rising_url': f'{host}/th-lh-lc/on'})
-pin_util.create({'pin_num': 27, 'name': 'th-lh-tol',  'direction': 'in', 'falling_url': f'{host}/th-lh-tol/off', 'rising_url': f'{host}/th-lh-tol/on'})
+pin_util = PinUtil()
+
+if 1:
+    pin_util.create({'pin_num': 20, 'name': 'led4', 'state': 'off', 'direction': 'out'})
+    pin_util.create({'pin_num': 21, 'name': 'led3', 'state': 'off', 'direction': 'out'})
+    pin_util.create({'pin_num': 16, 'name': 'led2', 'state': 'off', 'direction': 'out'})
+    pin_util.create({'pin_num': 12, 'name': 'led1', 'state': 'off', 'direction': 'out'})
+    
+    pin_util.create({'pin_num':  6, 'name': 'button4',  'direction': 'in', 'falling_url': f'{host}/bj-lh-lc/off',  'rising_url': f'{host}/bj-lh-lc/on'})
+    pin_util.create({'pin_num': 13, 'name': 'button3',  'direction': 'in', 'falling_url': f'{host}/bj-lh-tol/off', 'rising_url': f'{host}/bj-lh-tol/on'})
+    pin_util.create({'pin_num': 19, 'name': 'button2',  'direction': 'in', 'falling_url': f'{host}/th-lh-lc/off',  'rising_url': f'{host}/th-lh-lc/on'})
+    pin_util.create({'pin_num': 26, 'name': 'button1',  'direction': 'in', 'falling_url': f'{host}/th-lh-tol/off', 'rising_url': f'{host}/th-lh-tol/on'})
+else:
+    pin_util.create({'pin_num': 21, 'name': 'appr_bell',  'state': 'off', 'direction': 'out'})
+    pin_util.create({'pin_num': 20, 'name': 'tc4601',     'state': 'off', 'direction': 'out'})
+    pin_util.create({'pin_num': 16, 'name': 'lh-bj-bell', 'state': 'off', 'direction': 'out'})
+    pin_util.create({'pin_num': 12, 'name': 'lh-bj-lc',   'state': 'off', 'direction': 'out'})
+    pin_util.create({'pin_num': 25, 'name': 'lh-bj-tol',  'state': 'off', 'direction': 'out'})
+    pin_util.create({'pin_num': 24, 'name': 'lh-th-lc',   'state': 'off', 'direction': 'out'})
+    pin_util.create({'pin_num': 23, 'name': 'lh-th-tol',  'state': 'off', 'direction': 'out'})
+    pin_util.create({'pin_num': 18, 'name': 'lh-th-bell', 'state': 'off', 'direction': 'out'})
+
+    pin_util.create({'pin_num': 17, 'name': 'th-lh-tap',  'direction': 'in', 'falling_url': f'{host}/th-lh-tap/on'})
+    pin_util.create({'pin_num':  6, 'name': 'bj-lh-lc',   'direction': 'in', 'falling_url': f'{host}/bj-lh-lc/off',  'rising_url': f'{host}/bj-lh-lc/on'})
+    pin_util.create({'pin_num':  5, 'name': 'bj-lh-tol',  'direction': 'in', 'falling_url': f'{host}/bj-lh-tol/off', 'rising_url': f'{host}/bj-lh-tol/on'})
+    pin_util.create({'pin_num': 22, 'name': 'th-lh-lc',   'direction': 'in', 'falling_url': f'{host}/th-lh-lc/off',  'rising_url': f'{host}/th-lh-lc/on'})
+    pin_util.create({'pin_num': 27, 'name': 'th-lh-tol',  'direction': 'in', 'falling_url': f'{host}/th-lh-tol/off', 'rising_url': f'{host}/th-lh-tol/on'})
 
 
 if __name__ == '__main__':
