@@ -2,11 +2,12 @@
 
 # Raspberry Pi GPIO-controlled REST API
 
-from flask import Flask
+from flask import Flask, request
 from flask_restx import Api, Resource, fields
 import RPi.GPIO as GPIO
 import requests
 import time
+from threading import Thread, Lock
 
 app = Flask(__name__)
 api = Api(app,
@@ -37,6 +38,7 @@ class PinUtil(object):
     def __init__(self):
         self.counter = 0
         self.pins = []
+        self._mutex = Lock()
 
 
     def get(self, id):
@@ -81,6 +83,9 @@ class PinUtil(object):
 
 
     def update(self, id, data):
+        print("Update", id, "data", data)
+        if data is None:
+            api.abort(400, "Must supply data")
         pin = self.get(id)
         pin.update(data)  # this is the dict_object update method
         
@@ -102,10 +107,10 @@ class PinUtil(object):
 
 
     def pin_change(self, pin_num):
-            """ Send any appropriate request for the changed pin """
-            # Use a mutex lock to avoid race condition when
-            # multiple inputs change in quick succession
-            #with self._mutex:
+        """ Send any appropriate request for the changed pin """
+        # Use a mutex lock to avoid race condition when
+        # multiple inputs change in quick succession
+        with self._mutex:
             # If we haven't been here recently, this could be the first transition of a cluster caused by noise
             if self.last_pinchange_time < time.clock_gettime(1) - 0.1:
                 time.sleep(0.1)
@@ -154,6 +159,7 @@ class Pin(Resource):
 
     @ns.marshal_with(pin_model)
     def get(self, id):
+        print('Get pin ID', id)
         """Fetch a pin given its resource identifier"""
         return pin_util.get(id)
 
@@ -161,6 +167,7 @@ class Pin(Resource):
     @ns.expect(pin_model)
     @ns.marshal_with(pin_model)
     def put(self, id):
+        print('Put pin ID', id, "payload", api.payload)
         """Update a pin given its identifier"""
         return pin_util.update(id, api.payload)
 
@@ -179,23 +186,21 @@ class PinName(Resource):
             if pin['name'] == name:
                 print('Found', pin['name'])
                 return pin_util.get(pin['id'])
-                return pin_util.update(pin['id'], api.payload)
-        print('Not Found')
-        return False
+        api.abort(404, f"pin {name} doesn't exist.")
     
     # @ns.expect(pin_model, validate=True)
     @ns.expect(pin_model)
     @ns.marshal_with(pin_model)
     def put(self, name):
-        print('Putting pin with name', name)
+        #record = json.loads(request.data)
+        print('Putting pin with name', name, "payload", api.payload, request.data)
         """Update a pin given its function name"""
         for pin in pin_util.pins:
             # print('Checking', pin['name'])
             if pin['name'] == name:
-                print('Found', pin['name'])
+                print('Updating', pin['name'], "payload", api.payload)
                 return pin_util.update(pin['id'], api.payload)
-        print('Not Found')
-        return False
+        api.abort(404, f"pin {name} doesn't exist.")
 
 GPIO.setmode(GPIO.BCM)
 host = 'http://192.168.1.100/apipath'
