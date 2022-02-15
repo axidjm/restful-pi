@@ -1,0 +1,50 @@
+echo list all
+curl -X GET localhost:5000/pins/
+sleep 2
+echo ' '
+
+echo Testing by number
+curl -X GET localhost:5000/pins/1?state=on
+sleep 1
+curl -X GET localhost:5000/pins/1
+curl -X GET localhost:5000/pins/1?state=off
+curl -X GET localhost:5000/pins/1?state=pulse
+
+sleep 1
+curl -X GET localhost:5000/pins/2?state=pulse
+sleep 1
+curl -X GET localhost:5000/pins/3?state=pulse
+sleep 1
+curl -X GET localhost:5000/pins/4?state=pulse
+sleep 1
+
+echo ' '
+echo Testing by name
+curl -X GET localhost:5000/pins/name/led1?state=on
+sleep 1
+curl -X GET localhost:5000/pins/name/led1
+curl -X GET localhost:5000/pins/name/led1?state=off
+sleep 1
+curl -X GET localhost:5000/pins/name/led1?state=pulse
+sleep 1
+
+curl -X GET localhost:5000/pins/name/led2?state=pulse
+sleep 1
+curl -X GET localhost:5000/pins/name/led3?state=pulse
+sleep 1
+curl -X GET localhost:5000/pins/name/led4?state=pulse
+
+echo ' '
+echo Testing Buttons by name
+curl -X GET localhost:5000/pins/name/button1
+sleep 1
+curl -X GET localhost:5000/pins/name/button1
+sleep 1
+curl -X GET localhost:5000/pins/name/button1
+sleep 1
+
+echo ' '
+echo Test errors
+curl -X GET localhost:5000/pins/name/led4?state=BadState
+curl -X GET localhost:5000/pins/name/BadName
+
