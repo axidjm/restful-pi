@@ -104,7 +104,12 @@ class PinUtil(object):
             GPIO.output(pin['pin_num'], GPIO.LOW)
             pin['state'] = 'off'
             time.sleep(gap_period)
-
+        elif pin['state'] == 'pulse01':
+            GPIO.output(pin['pin_num'], GPIO.LOW)
+            time.sleep(pulse_period)
+            GPIO.output(pin['pin_num'], GPIO.HIGH)
+            pin['state'] = 'on'
+            time.sleep(gap_period)
         return pin
 
 
@@ -118,22 +123,22 @@ class PinUtil(object):
                 time.sleep(0.1)
                 self.last_pinchange_time = time.clock_gettime(1)
             new_state = 'on' if GPIO.input(pin_num) else 'off'
-            print (f"pin {pin_num} state {new_state}")
+            # print (f"pin {pin_num} state {new_state}")
             # Look for a 'pin' on this pin_num
             for pin in pin_util.pins:
                 # print (f"Comparing {pin_num} to {pin['pin_num']} and {pin['state']} to {new_state}")
                 # If found it and it has changed
                 if pin['pin_num'] == pin_num:
-                    print ("Found pin", pin_num, pin['name'])
+                    # print ("Found pin", pin_num, pin['name'])
                     if pin['state'] != new_state:
-                        print ("Pin changed state from", pin['state'], "to", new_state)
+                        print ("Input changed state from", pin['state'], "to", new_state)
                         pin['state'] = new_state
-                        if new_state == 'on' and 'rising_url' in pin:
-                            print(pin['rising_url'], new_state)
-                            # requests.put(pin['rising_url'], json={"state": new_state})
-                        if new_state == 'off' and 'falling_url' in pin:
-                            print(pin['falling_url'], new_state)
-                            # requests.put(pin['falling_url'], json={"state": new_state})
+                        if new_state == 'off' and 'rising_url' in pin:
+                            print('Calling falling_url', pin['rising_url'], new_state)
+                            requests.get(pin['rising_url'])
+                        if new_state == 'on' and 'falling_url' in pin:
+                            print('Calling rising_url', pin['falling_url'], new_state)
+                            requests.get(pin['falling_url'])
                     return
 
 
@@ -164,7 +169,7 @@ class Pin(Resource):
     def get(self, id):
         """Fetch a pin given its resource identifier. Optionally set the state"""
         parser = reqparse.RequestParser()
-        parser.add_argument('state', choices=('on', 'off', 'pulse') )
+        parser.add_argument('state', choices=('on', 'off', 'pulse', 'pulse01') )
         args = parser.parse_args()
         print('Get pin ID', id, args)
         if args['state']:
@@ -190,7 +195,7 @@ class PinName(Resource):
         
         """Fetch a pin given its function name. Optionally set the state"""
         parser = reqparse.RequestParser()
-        parser.add_argument('state', choices=('on', 'off', 'pulse') )
+        parser.add_argument('state', choices=('on', 'off', 'pulse', 'pulse01') )
         args = parser.parse_args()
         print('Get pin with name', name, args)
 
@@ -218,7 +223,7 @@ class PinName(Resource):
 
 if __name__ == '__main__':
     GPIO.setmode(GPIO.BCM)
-    host = 'http://192.168.1.243/apipath'
+    host = 'http://localhost:5000/pins/name'
     pin_util = PinUtil()
 
     if 1:
@@ -227,10 +232,10 @@ if __name__ == '__main__':
         pin_util.create({'pin_num': 16, 'name': 'led3', 'state': 'off', 'direction': 'out'})
         pin_util.create({'pin_num': 12, 'name': 'led4', 'state': 'off', 'direction': 'out'})
         
-        pin_util.create({'pin_num':  6, 'name': 'button4',  'direction': 'in', 'falling_url': f'{host}/bj-lh-lc/off',  'rising_url': f'{host}/bj-lh-lc/on'})
-        pin_util.create({'pin_num': 13, 'name': 'button3',  'direction': 'in', 'falling_url': f'{host}/bj-lh-tol/off', 'rising_url': f'{host}/bj-lh-tol/on'})
-        pin_util.create({'pin_num': 19, 'name': 'button2',  'direction': 'in', 'falling_url': f'{host}/th-lh-lc/off',  'rising_url': f'{host}/th-lh-lc/on'})
-        pin_util.create({'pin_num': 26, 'name': 'button1',  'direction': 'in', 'falling_url': f'{host}/th-lh-tol/off', 'rising_url': f'{host}/th-lh-tol/on'})
+        pin_util.create({'pin_num': 26, 'name': 'button1',  'direction': 'in', 'falling_url': f'{host}/led1?state=off', 'rising_url': f'{host}/led1?state=on'})
+        pin_util.create({'pin_num': 19, 'name': 'button2',  'direction': 'in', 'falling_url': f'{host}/led2?state=off', 'rising_url': f'{host}/led2?state=on'})
+        pin_util.create({'pin_num': 13, 'name': 'button3',  'direction': 'in', 'rising_url': f'{host}/led3?state=pulse'})
+        pin_util.create({'pin_num':  6, 'name': 'button4',  'direction': 'in', 'falling_url': f'{host}/led4?state=off', 'rising_url': f'{host}/led4?state=on'})
     else:
         pin_util.create({'pin_num': 21, 'name': 'appr_bell',  'state': 'off', 'direction': 'out'})
         pin_util.create({'pin_num': 20, 'name': 'tc4601',     'state': 'off', 'direction': 'out'})
@@ -242,9 +247,10 @@ if __name__ == '__main__':
         pin_util.create({'pin_num': 18, 'name': 'lh-th-bell', 'state': 'off', 'direction': 'out'})
 
         pin_util.create({'pin_num': 17, 'name': 'th-lh-tap',  'direction': 'in', 'falling_url': f'{host}/th-lh-tap/on'})
-        pin_util.create({'pin_num':  6, 'name': 'bj-lh-lc',   'direction': 'in', 'falling_url': f'{host}/bj-lh-lc/off',  'rising_url': f'{host}/bj-lh-lc/on'})
-        pin_util.create({'pin_num':  5, 'name': 'bj-lh-tol',  'direction': 'in', 'falling_url': f'{host}/bj-lh-tol/off', 'rising_url': f'{host}/bj-lh-tol/on'})
-        pin_util.create({'pin_num': 22, 'name': 'th-lh-lc',   'direction': 'in', 'falling_url': f'{host}/th-lh-lc/off',  'rising_url': f'{host}/th-lh-lc/on'})
         pin_util.create({'pin_num': 27, 'name': 'th-lh-tol',  'direction': 'in', 'falling_url': f'{host}/th-lh-tol/off', 'rising_url': f'{host}/th-lh-tol/on'})
+        pin_util.create({'pin_num': 22, 'name': 'th-lh-lc',   'direction': 'in', 'falling_url': f'{host}/th-lh-lc/off',  'rising_url': f'{host}/th-lh-lc/on'})
+        pin_util.create({'pin_num':  5, 'name': 'bj-lh-tol',  'direction': 'in', 'falling_url': f'{host}/bj-lh-tol/off', 'rising_url': f'{host}/bj-lh-tol/on'})
+        pin_util.create({'pin_num':  6, 'name': 'bj-lh-lc',   'direction': 'in', 'falling_url': f'{host}/bj-lh-lc/off',  'rising_url': f'{host}/bj-lh-lc/on'})
+        pin_util.create({'pin_num': 13, 'name': 'bj-lh-tap',  'direction': 'in', 'falling_url': f'{host}/bj-lh-tap/on'})
 
     app.run(debug=False, host='0.0.0.0')
