@@ -29,6 +29,8 @@ pin_model = api.model('pins', {
     'direction': fields.String(required=True, description='in (for opto input) or out (for LED/relay)'),
     'rising_url': fields.String(required=False, description='URL to PUT on rising edge of input'),
     'falling_url': fields.String(required=False, description='URL to PUT on falling edge of input'),
+    'rising_video': fields.String(required=False, description='video to play on rising edge of input'),
+    'falling_video': fields.String(required=False, description='video to play on falling edge of input'),
 })
 
 # Duration of a bell pulse when you set the state to 'pulse'
@@ -40,6 +42,11 @@ class PinUtil(object):
         self.counter = 0
         self.pins = []
         self._mutex = Lock()
+        # The currently playing video filename
+        _active_vid = None
+
+        # The process of the active video player
+        _p = None
 
 
     def get(self, id):
@@ -134,13 +141,48 @@ class PinUtil(object):
                         print ("Input changed state from", pin['state'], "to", new_state)
                         pin['state'] = new_state
                         if new_state == 'off' and 'rising_url' in pin:
-                            print('Calling falling_url', pin['rising_url'], new_state)
+                            print('Calling rising_url', pin['rising_url'], new_state)
                             requests.get(pin['rising_url'])
                         if new_state == 'on' and 'falling_url' in pin:
-                            print('Calling rising_url', pin['falling_url'], new_state)
+                            print('Calling falling_url', pin['falling_url'], new_state)
                             requests.get(pin['falling_url'])
+                        if new_state == 'off' and 'rising_video' in pin:
+                            print('Calling rising_video', pin['rising_video'], new_state)
+                            self.switch_vid(pin['rising_video'])
+                        if new_state == 'on' and 'falling_video' in pin:
+                            print('Calling falling_video', pin['falling_video'], new_state)
+                            self.switch_vid(pin['falling_video'])
                     return
 
+# Following based on vidlooper.py
+    def switch_vid(self, filename):
+        """ Switch to the video corresponding to the shorted pin """
+
+        # Use a mutex lock to avoid race condition when
+        # multiple buttons are pressed quickly
+        with self._mutex:
+
+            if filename != self._active_vid or self.restart_on_press:
+                # Kill any previous video player process
+                self._kill_process()
+                # Start a new video player process, capture STDOUT to keep the
+                # screen clear. Set a session ID (os.setsid) to allow us to kill
+                # the whole video player process tree.
+                cmd = ['omxplayer', '-b', '-o', self.audio]
+
+                if 0:
+                    cmd += ['--no-osd']
+                self._p = Popen(cmd + [filename],
+                                stdout=None if self.debug else PIPE,
+                                preexec_fn=os.setsid)
+                self._active_vid = filename
+
+    def _kill_process(self):
+        """ Kill a video player process. SIGINT seems to work best. """
+        if self._p is not None:
+            os.killpg(os.getpgid(self._p.pid), signal.SIGINT)
+            self._p = None
+# end vidlooper.py bits
 
 @ns.route('/')  # keep in mind this our ns-namespace (pins/)
 class PinList(Resource):
@@ -266,6 +308,6 @@ if __name__ == '__main__':
         pin_util.create({'pin_num': 22, 'name': 'lever-11',  'direction': 'in', 'falling_url': f'{host}/lever/11/N', 'rising_url': f'{host}/lever/11/R'})
         pin_util.create({'pin_num':  5, 'name': 'lever-12',  'direction': 'in', 'falling_url': f'{host}/lever/12/N', 'rising_url': f'{host}/lever/12/R'})
         pin_util.create({'pin_num':  6, 'name': 'lever-13',  'direction': 'in', 'falling_url': f'{host}/lever/13/N', 'rising_url': f'{host}/lever/13/R'})
-        pin_util.create({'pin_num': 13, 'name': 'lever-14',  'direction': 'in', 'falling_url': f'{host}/lever/14/N', 'rising_url': f'{host}/lever/14/R'})
+        pin_util.create({'pin_num': 13, 'name': 'lever-14',  'direction': 'in', 'falling_url': f'{host}/lever/14/N', 'rising_url': f'{host}/lever/14/R', 'falling_video': gates_opening.mp4', 'rising_video': gates_closing.mp4',})
 
     app.run(debug=False, host='0.0.0.0')
