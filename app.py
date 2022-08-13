@@ -236,7 +236,7 @@ if __name__ == '__main__':
         pin_util.create({'pin_num': 19, 'name': 'button2',  'direction': 'in', 'falling_url': f'{host}/led2?state=off', 'rising_url': f'{host}/led2?state=on'})
         pin_util.create({'pin_num': 13, 'name': 'button3',  'direction': 'in', 'rising_url': f'{host}/led3?state=pulse'})
         pin_util.create({'pin_num':  6, 'name': 'button4',  'direction': 'in', 'falling_url': f'{host}/led4?state=off', 'rising_url': f'{host}/led4?state=on'})
-    else:
+    elif 1:
         pin_util.create({'pin_num': 21, 'name': 'appr_bell',  'state': 'off', 'direction': 'out'})
         pin_util.create({'pin_num': 20, 'name': 'tc4601',     'state': 'off', 'direction': 'out'})
         pin_util.create({'pin_num': 16, 'name': 'lh-bj-bell', 'state': 'off', 'direction': 'out'})
@@ -252,5 +252,20 @@ if __name__ == '__main__':
         pin_util.create({'pin_num':  5, 'name': 'bj-lh-tol',  'direction': 'in', 'falling_url': f'{host}/bj-lh-tol/off', 'rising_url': f'{host}/bj-lh-tol/on'})
         pin_util.create({'pin_num':  6, 'name': 'bj-lh-lc',   'direction': 'in', 'falling_url': f'{host}/bj-lh-lc/off',  'rising_url': f'{host}/bj-lh-lc/on'})
         pin_util.create({'pin_num': 13, 'name': 'bj-lh-tap',  'direction': 'in', 'falling_url': f'{host}/bj-lh-tap/on'})
+    else:
+        pin_util.create({'pin_num': 21, 'name': 'lever-1',  'direction': 'in', 'falling_url': f'{host}/lever/1/N', 'rising_url': f'{host}/lever/1/R'})
+        pin_util.create({'pin_num': 20, 'name': 'lever-2',  'direction': 'in', 'falling_url': f'{host}/lever/2/N', 'rising_url': f'{host}/lever/2/R'})
+        pin_util.create({'pin_num': 16, 'name': 'lever-3',  'direction': 'in', 'falling_url': f'{host}/lever/3/N', 'rising_url': f'{host}/lever/3/R'})
+        pin_util.create({'pin_num': 12, 'name': 'lever-4',  'direction': 'in', 'falling_url': f'{host}/lever/4/N', 'rising_url': f'{host}/lever/4/R'})
+        pin_util.create({'pin_num': 25, 'name': 'lever-5',  'direction': 'in', 'falling_url': f'{host}/lever/5/N', 'rising_url': f'{host}/lever/5/R'})
+        pin_util.create({'pin_num': 24, 'name': 'lever-6',  'direction': 'in', 'falling_url': f'{host}/lever/6/N', 'rising_url': f'{host}/lever/6/R'})
+        pin_util.create({'pin_num': 23, 'name': 'lever-7',  'direction': 'in', 'falling_url': f'{host}/lever/7/N', 'rising_url': f'{host}/lever/7/R'})
+        pin_util.create({'pin_num': 18, 'name': 'lever-8',  'direction': 'in', 'falling_url': f'{host}/lever/8/N', 'rising_url': f'{host}/lever/8/R'})
+        pin_util.create({'pin_num': 17, 'name': 'lever-9',  'direction': 'in', 'falling_url': f'{host}/lever/9/N', 'rising_url': f'{host}/lever/9/R'})
+        pin_util.create({'pin_num': 27, 'name': 'lever-10',  'direction': 'in', 'falling_url': f'{host}/lever/10/N', 'rising_url': f'{host}/lever/10/R'})
+        pin_util.create({'pin_num': 22, 'name': 'lever-11',  'direction': 'in', 'falling_url': f'{host}/lever/11/N', 'rising_url': f'{host}/lever/11/R'})
+        pin_util.create({'pin_num':  5, 'name': 'lever-12',  'direction': 'in', 'falling_url': f'{host}/lever/12/N', 'rising_url': f'{host}/lever/12/R'})
+        pin_util.create({'pin_num':  6, 'name': 'lever-13',  'direction': 'in', 'falling_url': f'{host}/lever/13/N', 'rising_url': f'{host}/lever/13/R'})
+        pin_util.create({'pin_num': 13, 'name': 'lever-14',  'direction': 'in', 'falling_url': f'{host}/lever/14/N', 'rising_url': f'{host}/lever/14/R'})
 
     app.run(debug=False, host='0.0.0.0')
