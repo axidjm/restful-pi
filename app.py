@@ -6,6 +6,7 @@ from flask import Flask, request
 from flask_restx import Api, Resource, fields, reqparse
 import RPi.GPIO as GPIO
 import requests
+import serial
 import time
 from threading import Thread, Lock
 
@@ -31,11 +32,14 @@ pin_model = api.model('pins', {
     'falling_url': fields.String(required=False, description='URL to PUT on falling edge of input'),
     'rising_video': fields.String(required=False, description='video to play on rising edge of input'),
     'falling_video': fields.String(required=False, description='video to play on falling edge of input'),
+    'rising_serial': fields.String(required=False, description='string to send on rising edge of input'),
+    'falling_serial': fields.String(required=False, description='string to send on falling edge of input'),
 })
 
 # Duration of a bell pulse when you set the state to 'pulse'
 pulse_period = 0.15
 gap_period = 0.25
+
 
 class PinUtil(object):
     def __init__(self):
@@ -47,6 +51,11 @@ class PinUtil(object):
 
         # The process of the active video player
         _p = None
+
+        ser = serial.Serial('/dev/rfcomm0', 9600)  # open serial port
+        print(ser.name)         # check which port was really used
+        #ser.write(b'hello')     # write a string
+        #ser.close()             # close port
 
 
     def get(self, id):
@@ -121,7 +130,10 @@ class PinUtil(object):
 
 
     def pin_change(self, pin_num):
-        """ Send any appropriate request for the changed pin """
+        """
+        Send any appropriate request for the changed pin.
+        
+        """
         # Use a mutex lock to avoid race condition when
         # multiple inputs change in quick succession
         with self._mutex:
@@ -140,18 +152,26 @@ class PinUtil(object):
                     if pin['state'] != new_state:
                         print ("Input changed state from", pin['state'], "to", new_state)
                         pin['state'] = new_state
-                        if new_state == 'off' and 'rising_url' in pin:
-                            print('Calling rising_url', pin['rising_url'], new_state)
-                            requests.get(pin['rising_url'])
-                        if new_state == 'on' and 'falling_url' in pin:
-                            print('Calling falling_url', pin['falling_url'], new_state)
-                            requests.get(pin['falling_url'])
-                        if new_state == 'off' and 'rising_video' in pin:
-                            print('Calling rising_video', pin['rising_video'], new_state)
-                            self.switch_vid(pin['rising_video'])
-                        if new_state == 'on' and 'falling_video' in pin:
-                            print('Calling falling_video', pin['falling_video'], new_state)
-                            self.switch_vid(pin['falling_video'])
+                        if new_state == 'on':
+                            if 'rising_url' in pin:
+                                print('Calling rising_url', pin['rising_url'], new_state)
+                                requests.get(pin['rising_url'])
+                            if 'rising_video' in pin:
+                                print('Calling rising_video', pin['rising_video'], new_state)
+                                self.switch_vid(pin['rising_video'])
+                            if 'rising_serial' in pin:
+                                print('Calling rising_serial', pin['rising_serial'], new_state)
+                                ser.write(pin['rising_serial'])
+                        if new_state == 'off':
+                            if 'falling_url' in pin:
+                                print('Calling falling_url', pin['falling_url'], new_state)
+                                requests.get(pin['falling_url'])
+                            if 'falling_video' in pin:
+                                print('Calling falling_video', pin['falling_video'], new_state)
+                                self.switch_vid(pin['falling_video'])
+                            if 'falling_serial' in pin:
+                                print('Calling falling_serial', pin['falling_serial'], new_state)
+                                ser.write(pin['falling_serial'])
                     return
 
 # Following based on vidlooper.py
@@ -278,7 +298,7 @@ if __name__ == '__main__':
         pin_util.create({'pin_num': 19, 'name': 'button2',  'direction': 'in', 'falling_url': f'{host}/led2?state=off', 'rising_url': f'{host}/led2?state=on'})
         pin_util.create({'pin_num': 13, 'name': 'button3',  'direction': 'in', 'rising_url': f'{host}/led3?state=pulse'})
         pin_util.create({'pin_num':  6, 'name': 'button4',  'direction': 'in', 'falling_url': f'{host}/led4?state=off', 'rising_url': f'{host}/led4?state=on'})
-    elif 1:
+    elif 0:
         pin_util.create({'pin_num': 21, 'name': 'appr_bell',  'state': 'off', 'direction': 'out'})
         pin_util.create({'pin_num': 20, 'name': 'tc4601',     'state': 'off', 'direction': 'out'})
         pin_util.create({'pin_num': 16, 'name': 'lh-bj-bell', 'state': 'off', 'direction': 'out'})
@@ -298,7 +318,7 @@ if __name__ == '__main__':
         pin_util.create({'pin_num': 21, 'name': 'lever-1',  'direction': 'in', 'falling_url': f'{host}/lever/1/N', 'rising_url': f'{host}/lever/1/R'})
         pin_util.create({'pin_num': 20, 'name': 'lever-2',  'direction': 'in', 'falling_url': f'{host}/lever/2/N', 'rising_url': f'{host}/lever/2/R'})
         pin_util.create({'pin_num': 16, 'name': 'lever-3',  'direction': 'in', 'falling_url': f'{host}/lever/3/N', 'rising_url': f'{host}/lever/3/R'})
-        pin_util.create({'pin_num': 12, 'name': 'lever-4',  'direction': 'in', 'falling_url': f'{host}/lever/4/N', 'rising_url': f'{host}/lever/4/R'})
+        pin_util.create({'pin_num': 12, 'name': 'lever-4',  'direction': 'in', 'falling_url': f'{host}/lever/4/N', 'rising_url': f'{host}/lever/4/R', 'falling-serial': '4N', 'rising-serial': '4R')}
         pin_util.create({'pin_num': 25, 'name': 'lever-5',  'direction': 'in', 'falling_url': f'{host}/lever/5/N', 'rising_url': f'{host}/lever/5/R'})
         pin_util.create({'pin_num': 24, 'name': 'lever-6',  'direction': 'in', 'falling_url': f'{host}/lever/6/N', 'rising_url': f'{host}/lever/6/R'})
         pin_util.create({'pin_num': 23, 'name': 'lever-7',  'direction': 'in', 'falling_url': f'{host}/lever/7/N', 'rising_url': f'{host}/lever/7/R'})
@@ -308,6 +328,6 @@ if __name__ == '__main__':
         pin_util.create({'pin_num': 22, 'name': 'lever-11',  'direction': 'in', 'falling_url': f'{host}/lever/11/N', 'rising_url': f'{host}/lever/11/R'})
         pin_util.create({'pin_num':  5, 'name': 'lever-12',  'direction': 'in', 'falling_url': f'{host}/lever/12/N', 'rising_url': f'{host}/lever/12/R'})
         pin_util.create({'pin_num':  6, 'name': 'lever-13',  'direction': 'in', 'falling_url': f'{host}/lever/13/N', 'rising_url': f'{host}/lever/13/R'})
-        pin_util.create({'pin_num': 13, 'name': 'lever-14',  'direction': 'in', 'falling_url': f'{host}/lever/14/N', 'rising_url': f'{host}/lever/14/R', 'falling_video': gates_opening.mp4', 'rising_video': gates_closing.mp4',})
+        pin_util.create({'pin_num': 13, 'name': 'lever-14',  'direction': 'in', 'falling_url': f'{host}/lever/14/N', 'rising_url': f'{host}/lever/14/R', 'falling_video': 'gates_opening.mp4', 'rising_video': 'gates_closing.mp4'})
 
     app.run(debug=False, host='0.0.0.0')
