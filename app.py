@@ -343,7 +343,7 @@ if __name__ == '__main__':
         pin_util.create({'pin_num': 22, 'name': 'lever-11',  'direction': 'in', 'falling_url': f'{host}/lever/11/N', 'rising_url': f'{host}/lever/11/R'})
         pin_util.create({'pin_num':  5, 'name': 'lever-12',  'direction': 'in', 'falling_url': f'{host}/lever/12/N', 'rising_url': f'{host}/lever/12/R'})
         pin_util.create({'pin_num':  6, 'name': 'lever-13',  'direction': 'in', 'falling_url': f'{host}/lever/13/N', 'rising_url': f'{host}/lever/13/R', 'falling-serial': '13N', 'rising-serial': '13R'})
-        pin_util.create({'pin_num': 13, 'name': 'lever-14',  'direction': 'in', 'falling_url': f'{host}/lever/14/N', 'rising_url': f'{host}/lever/14/R', 'falling_video': 'gates_opening.mp4', 'rising_video': 'gates_closing.mp4'})
+        pin_util.create({'pin_num': 13, 'name': 'lever-14',  'direction': 'in', 'falling_url': f'{host}/lever/14/N', 'rising_url': f'{host}/lever/14/R', 'falling_video': '1-Gates opening.mp4', 'rising_video': '2-Gates closing.mp4'})
     }
 
     app.run(debug=False, host='0.0.0.0')
