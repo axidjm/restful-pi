@@ -286,9 +286,22 @@ class PinName(Resource):
 if __name__ == '__main__':
     GPIO.setmode(GPIO.BCM)
     host = 'http://localhost:5000/pins/name'
+    mode = "vidlooper"
+
     pin_util = PinUtil()
 
-    if 1:
+    if len(sys.argv) >= 2:
+        host = sys.argv[2]
+
+    print (f"host is {host}")
+
+    if len(sys.argv) >= 3:
+        mode = sys.argv[3]
+
+    print (f"mode is {mode}")
+
+    switch mode {
+    case 'vidlooper':
         pin_util.create({'pin_num': 21, 'name': 'led1', 'state': 'off', 'direction': 'out'})
         pin_util.create({'pin_num': 20, 'name': 'led2', 'state': 'off', 'direction': 'out'})
         pin_util.create({'pin_num': 16, 'name': 'led3', 'state': 'off', 'direction': 'out'})
@@ -298,7 +311,8 @@ if __name__ == '__main__':
         pin_util.create({'pin_num': 19, 'name': 'button2',  'direction': 'in', 'falling_url': f'{host}/led2?state=off', 'rising_url': f'{host}/led2?state=on'})
         pin_util.create({'pin_num': 13, 'name': 'button3',  'direction': 'in', 'rising_url': f'{host}/led3?state=pulse'})
         pin_util.create({'pin_num':  6, 'name': 'button4',  'direction': 'in', 'falling_url': f'{host}/led4?state=off', 'rising_url': f'{host}/led4?state=on'})
-    elif 0:
+
+    case 'block':
         pin_util.create({'pin_num': 21, 'name': 'appr_bell',  'state': 'off', 'direction': 'out'})
         pin_util.create({'pin_num': 20, 'name': 'tc4601',     'state': 'off', 'direction': 'out'})
         pin_util.create({'pin_num': 16, 'name': 'lh-bj-bell', 'state': 'off', 'direction': 'out'})
@@ -314,7 +328,8 @@ if __name__ == '__main__':
         pin_util.create({'pin_num':  5, 'name': 'bj-lh-tol',  'direction': 'in', 'falling_url': f'{host}/bj-lh-tol/off', 'rising_url': f'{host}/bj-lh-tol/on'})
         pin_util.create({'pin_num':  6, 'name': 'bj-lh-lc',   'direction': 'in', 'falling_url': f'{host}/bj-lh-lc/off',  'rising_url': f'{host}/bj-lh-lc/on'})
         pin_util.create({'pin_num': 13, 'name': 'bj-lh-tap',  'direction': 'in', 'falling_url': f'{host}/bj-lh-tap/on'})
-    else:
+
+    case 'levers':
         pin_util.create({'pin_num': 21, 'name': 'lever-1',  'direction': 'in', 'falling_url': f'{host}/lever/1/N', 'rising_url': f'{host}/lever/1/R'})
         pin_util.create({'pin_num': 20, 'name': 'lever-2',  'direction': 'in', 'falling_url': f'{host}/lever/2/N', 'rising_url': f'{host}/lever/2/R'})
         pin_util.create({'pin_num': 16, 'name': 'lever-3',  'direction': 'in', 'falling_url': f'{host}/lever/3/N', 'rising_url': f'{host}/lever/3/R'})
@@ -327,7 +342,8 @@ if __name__ == '__main__':
         pin_util.create({'pin_num': 27, 'name': 'lever-10',  'direction': 'in', 'falling_url': f'{host}/lever/10/N', 'rising_url': f'{host}/lever/10/R'})
         pin_util.create({'pin_num': 22, 'name': 'lever-11',  'direction': 'in', 'falling_url': f'{host}/lever/11/N', 'rising_url': f'{host}/lever/11/R'})
         pin_util.create({'pin_num':  5, 'name': 'lever-12',  'direction': 'in', 'falling_url': f'{host}/lever/12/N', 'rising_url': f'{host}/lever/12/R'})
-        pin_util.create({'pin_num':  6, 'name': 'lever-13',  'direction': 'in', 'falling_url': f'{host}/lever/13/N', 'rising_url': f'{host}/lever/13/R'})
+        pin_util.create({'pin_num':  6, 'name': 'lever-13',  'direction': 'in', 'falling_url': f'{host}/lever/13/N', 'rising_url': f'{host}/lever/13/R', 'falling-serial': '13N', 'rising-serial': '13R'})
         pin_util.create({'pin_num': 13, 'name': 'lever-14',  'direction': 'in', 'falling_url': f'{host}/lever/14/N', 'rising_url': f'{host}/lever/14/R', 'falling_video': 'gates_opening.mp4', 'rising_video': 'gates_closing.mp4'})
+    }
 
     app.run(debug=False, host='0.0.0.0')
