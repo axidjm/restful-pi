@@ -5,16 +5,17 @@
 from flask import Flask, request
 from flask_restx import Api, Resource, fields, reqparse
 import RPi.GPIO as GPIO
+from subprocess import Popen, PIPE
 import requests
 import serial
-import time
+import os, sys, signal, time
 from threading import Thread, Lock
 
 app = Flask(__name__)
 api = Api(app,
           version='1.1',
           title='RESTFUL Pi++',
-          description='A RESTFUL API to control the GPIO pins of a Raspberry Pi',
+          description='A RESTFUL API to control the GPIO pins of a Raspberry Pi for signal box simulation',
           doc='/docs')
 
 ns = api.namespace('pins', description='Pin related operations')
@@ -46,14 +47,16 @@ class PinUtil(object):
         self.counter = 0
         self.pins = []
         self._mutex = Lock()
+        self.debug = 1
+        
         # The currently playing video filename
-        _active_vid = None
+        self._active_vid = None
 
         # The process of the active video player
-        _p = None
+        self._p = None
 
-        ser = serial.Serial('/dev/rfcomm0', 9600)  # open serial port
-        print(ser.name)         # check which port was really used
+        # mser = serial.Serial('/dev/rfcomm0', 9600)  # open serial port
+        # print(ser.name)         # check which port was really used
         #ser.write(b'hello')     # write a string
         #ser.close()             # close port
 
@@ -70,10 +73,28 @@ class PinUtil(object):
         pin['id'] = self.counter = self.counter + 1
         self.pins.append(pin)
         self.last_pinchange_time = time.clock_gettime(1)
-        
+
         if pin['direction'] == 'in':
             GPIO.setup(pin['pin_num'], GPIO.IN, pull_up_down=GPIO.PUD_UP)
             pin['state'] = 'on' if GPIO.input(pin['pin_num']) else 'off'
+
+            if 'rising_video' in pin:
+                filename = pin['rising_video']
+                if not os.path.exists(filename):
+                    if os.path.exists(f"/home/pi/Videos/{filename}"):
+                        pin['rising_video'] = f"/home/pi/Videos/{filename}"
+                        print(f"rising_video is /home/pi/Videos/{filename}")
+                    else:
+                        print(f"Can't find {filename} or /home/pi/Videos/{filename}")
+
+            if 'falling_video' in pin:
+                filename = pin['falling_video']
+                if not os.path.exists(filename):
+                    if os.path.exists(f"/home/pi/Videos/{filename}"):
+                        pin['falling_video'] = f"/home/pi/Videos/{filename}"
+                        print(f"falling_video is /home/pi/Videos/{filename}")
+                    else:
+                        print(f"Can't find {filename} or /home/pi/Videos/{filename}")
 
             if 'rising_url' in pin:
                 if 'falling_url' in pin:
@@ -178,30 +199,27 @@ class PinUtil(object):
     def switch_vid(self, filename):
         """ Switch to the video corresponding to the shorted pin """
 
-        # Use a mutex lock to avoid race condition when
-        # multiple buttons are pressed quickly
-        with self._mutex:
+        print(f"switch_vid {filename}")
 
-            if filename != self._active_vid or self.restart_on_press:
-                # Kill any previous video player process
-                self._kill_process()
-                # Start a new video player process, capture STDOUT to keep the
-                # screen clear. Set a session ID (os.setsid) to allow us to kill
-                # the whole video player process tree.
-                cmd = ['omxplayer', '-b', '-o', self.audio]
+        if filename != self._active_vid or self.restart_on_press:
+            # Kill any previous video player process
+            self._kill_process()
+            # Start a new video player process, capture STDOUT to keep the
+            # screen clear. Set a session ID (os.setsid) to allow us to kill
+            cmd = ['cvlc', '--fullscreen', f"file://{filename}"]
+            print(cmd)
 
-                if 0:
-                    cmd += ['--no-osd']
-                self._p = Popen(cmd + [filename],
-                                stdout=None if self.debug else PIPE,
-                                preexec_fn=os.setsid)
-                self._active_vid = filename
+            self._p = Popen(cmd, stdout=None if self.debug else PIPE, preexec_fn=os.setsid)
+            self._active_vid = filename
 
     def _kill_process(self):
         """ Kill a video player process. SIGINT seems to work best. """
         if self._p is not None:
             os.killpg(os.getpgid(self._p.pid), signal.SIGINT)
+            print(f"Killing process {self._p.pid}")
             self._p = None
+        else:
+            print("No video running")
 # end vidlooper.py bits
 
 @ns.route('/')  # keep in mind this our ns-namespace (pins/)
@@ -286,7 +304,7 @@ class PinName(Resource):
 if __name__ == '__main__':
     GPIO.setmode(GPIO.BCM)
     host = 'http://localhost:5000/pins/name'
-    mode = "vidlooper"
+    mode = "levers"
 
     pin_util = PinUtil()
 
@@ -299,9 +317,11 @@ if __name__ == '__main__':
         mode = sys.argv[3]
 
     print (f"mode is {mode}")
+    
+    print(os.path.exists(".")) 
+    print(os.path.exists("/home/pi/Videos"))
 
-    switch mode {
-    case 'vidlooper':
+    if mode == 'vidlooper':
         pin_util.create({'pin_num': 21, 'name': 'led1', 'state': 'off', 'direction': 'out'})
         pin_util.create({'pin_num': 20, 'name': 'led2', 'state': 'off', 'direction': 'out'})
         pin_util.create({'pin_num': 16, 'name': 'led3', 'state': 'off', 'direction': 'out'})
@@ -312,7 +332,7 @@ if __name__ == '__main__':
         pin_util.create({'pin_num': 13, 'name': 'button3',  'direction': 'in', 'rising_url': f'{host}/led3?state=pulse'})
         pin_util.create({'pin_num':  6, 'name': 'button4',  'direction': 'in', 'falling_url': f'{host}/led4?state=off', 'rising_url': f'{host}/led4?state=on'})
 
-    case 'block':
+    elif mode == 'block':
         pin_util.create({'pin_num': 21, 'name': 'appr_bell',  'state': 'off', 'direction': 'out'})
         pin_util.create({'pin_num': 20, 'name': 'tc4601',     'state': 'off', 'direction': 'out'})
         pin_util.create({'pin_num': 16, 'name': 'lh-bj-bell', 'state': 'off', 'direction': 'out'})
@@ -329,11 +349,11 @@ if __name__ == '__main__':
         pin_util.create({'pin_num':  6, 'name': 'bj-lh-lc',   'direction': 'in', 'falling_url': f'{host}/bj-lh-lc/off',  'rising_url': f'{host}/bj-lh-lc/on'})
         pin_util.create({'pin_num': 13, 'name': 'bj-lh-tap',  'direction': 'in', 'falling_url': f'{host}/bj-lh-tap/on'})
 
-    case 'levers':
+    elif mode ==  'levers':
         pin_util.create({'pin_num': 21, 'name': 'lever-1',  'direction': 'in', 'falling_url': f'{host}/lever/1/N', 'rising_url': f'{host}/lever/1/R'})
         pin_util.create({'pin_num': 20, 'name': 'lever-2',  'direction': 'in', 'falling_url': f'{host}/lever/2/N', 'rising_url': f'{host}/lever/2/R'})
         pin_util.create({'pin_num': 16, 'name': 'lever-3',  'direction': 'in', 'falling_url': f'{host}/lever/3/N', 'rising_url': f'{host}/lever/3/R'})
-        pin_util.create({'pin_num': 12, 'name': 'lever-4',  'direction': 'in', 'falling_url': f'{host}/lever/4/N', 'rising_url': f'{host}/lever/4/R', 'falling-serial': '4N', 'rising-serial': '4R')}
+        pin_util.create({'pin_num': 12, 'name': 'lever-4',  'direction': 'in', 'falling_url': f'{host}/lever/4/N', 'rising_url': f'{host}/lever/4/R', 'falling-serial': '4N', 'rising-serial': '4R'})
         pin_util.create({'pin_num': 25, 'name': 'lever-5',  'direction': 'in', 'falling_url': f'{host}/lever/5/N', 'rising_url': f'{host}/lever/5/R'})
         pin_util.create({'pin_num': 24, 'name': 'lever-6',  'direction': 'in', 'falling_url': f'{host}/lever/6/N', 'rising_url': f'{host}/lever/6/R'})
         pin_util.create({'pin_num': 23, 'name': 'lever-7',  'direction': 'in', 'falling_url': f'{host}/lever/7/N', 'rising_url': f'{host}/lever/7/R'})
@@ -343,7 +363,7 @@ if __name__ == '__main__':
         pin_util.create({'pin_num': 22, 'name': 'lever-11',  'direction': 'in', 'falling_url': f'{host}/lever/11/N', 'rising_url': f'{host}/lever/11/R'})
         pin_util.create({'pin_num':  5, 'name': 'lever-12',  'direction': 'in', 'falling_url': f'{host}/lever/12/N', 'rising_url': f'{host}/lever/12/R'})
         pin_util.create({'pin_num':  6, 'name': 'lever-13',  'direction': 'in', 'falling_url': f'{host}/lever/13/N', 'rising_url': f'{host}/lever/13/R', 'falling-serial': '13N', 'rising-serial': '13R'})
-        pin_util.create({'pin_num': 13, 'name': 'lever-14',  'direction': 'in', 'falling_url': f'{host}/lever/14/N', 'rising_url': f'{host}/lever/14/R', 'falling_video': '1-Gates opening.mp4', 'rising_video': '2-Gates closing.mp4'})
-    }
+        pin_util.create({'pin_num': 13, 'name': 'lever-14',  'direction': 'in', 'falling_url': f'{host}/lever/14/N', 'rising_url': f'{host}/lever/14/R', 'falling_video': '1-Gates-opening.mp4', 'rising_video': '2-Gates-closing.mp4'})
+
 
     app.run(debug=False, host='0.0.0.0')
