@@ -48,6 +48,7 @@ class PinUtil(object):
         self.pins = []
         self._mutex = Lock()
         self.debug = 1
+        self.pull_up_down = GPIO.PUD_UP
         
         # The currently playing video filename
         self._active_vid = None
@@ -59,6 +60,10 @@ class PinUtil(object):
         # print(ser.name)         # check which port was really used
         #ser.write(b'hello')     # write a string
         #ser.close()             # close port
+
+    def set_pull_up_down(self, pull_up_down):
+        self.pull_up_down = pull_up_down
+        print(f"Pull Up or Down = ${pull_up_down}")
 
 
     def get(self, id):
@@ -75,7 +80,7 @@ class PinUtil(object):
         self.last_pinchange_time = time.clock_gettime(1)
 
         if pin['direction'] == 'in':
-            GPIO.setup(pin['pin_num'], GPIO.IN, pull_up_down=GPIO.PUD_UP)
+            GPIO.setup(pin['pin_num'], GPIO.IN, pull_up_down=self.pull_up_down)
             pin['state'] = 'on' if GPIO.input(pin['pin_num']) else 'off'
 
             if 'rising_video' in pin:
@@ -308,20 +313,19 @@ if __name__ == '__main__':
 
     pin_util = PinUtil()
 
-    if len(sys.argv) >= 2:
-        host = sys.argv[2]
+    if len(sys.argv) > 1:
+        host = sys.argv[1]
 
     print (f"host is {host}")
 
-    if len(sys.argv) >= 3:
-        mode = sys.argv[3]
+    if len(sys.argv) > 2:
+        mode = sys.argv[2]
 
     print (f"mode is {mode}")
-    
-    print(os.path.exists(".")) 
-    print(os.path.exists("/home/pi/Videos"))
 
     if mode == 'vidlooper':
+        pin_util.set_pull_up_down(GPIO.PUD_UP)
+
         pin_util.create({'pin_num': 21, 'name': 'led1', 'state': 'off', 'direction': 'out'})
         pin_util.create({'pin_num': 20, 'name': 'led2', 'state': 'off', 'direction': 'out'})
         pin_util.create({'pin_num': 16, 'name': 'led3', 'state': 'off', 'direction': 'out'})
@@ -333,6 +337,8 @@ if __name__ == '__main__':
         pin_util.create({'pin_num':  6, 'name': 'button4',  'direction': 'in', 'falling_url': f'{host}/led4?state=off', 'rising_url': f'{host}/led4?state=on'})
 
     elif mode == 'block':
+        pin_util.set_pull_up_down(GPIO.PUD_UP)
+
         pin_util.create({'pin_num': 21, 'name': 'appr_bell',  'state': 'off', 'direction': 'out'})
         pin_util.create({'pin_num': 20, 'name': 'tc4601',     'state': 'off', 'direction': 'out'})
         pin_util.create({'pin_num': 16, 'name': 'lh-bj-bell', 'state': 'off', 'direction': 'out'})
@@ -350,20 +356,24 @@ if __name__ == '__main__':
         pin_util.create({'pin_num': 13, 'name': 'bj-lh-tap',  'direction': 'in', 'falling_url': f'{host}/bj-lh-tap/on'})
 
     elif mode ==  'levers':
-        pin_util.create({'pin_num': 21, 'name': 'lever-1',  'direction': 'in', 'falling_url': f'{host}/lever/1/N', 'rising_url': f'{host}/lever/1/R'})
-        pin_util.create({'pin_num': 20, 'name': 'lever-2',  'direction': 'in', 'falling_url': f'{host}/lever/2/N', 'rising_url': f'{host}/lever/2/R'})
-        pin_util.create({'pin_num': 16, 'name': 'lever-3',  'direction': 'in', 'falling_url': f'{host}/lever/3/N', 'rising_url': f'{host}/lever/3/R'})
-        pin_util.create({'pin_num': 12, 'name': 'lever-4',  'direction': 'in', 'falling_url': f'{host}/lever/4/N', 'rising_url': f'{host}/lever/4/R', 'falling-serial': '4N', 'rising-serial': '4R'})
-        pin_util.create({'pin_num': 25, 'name': 'lever-5',  'direction': 'in', 'falling_url': f'{host}/lever/5/N', 'rising_url': f'{host}/lever/5/R'})
-        pin_util.create({'pin_num': 24, 'name': 'lever-6',  'direction': 'in', 'falling_url': f'{host}/lever/6/N', 'rising_url': f'{host}/lever/6/R'})
-        pin_util.create({'pin_num': 23, 'name': 'lever-7',  'direction': 'in', 'falling_url': f'{host}/lever/7/N', 'rising_url': f'{host}/lever/7/R'})
-        pin_util.create({'pin_num': 18, 'name': 'lever-8',  'direction': 'in', 'falling_url': f'{host}/lever/8/N', 'rising_url': f'{host}/lever/8/R'})
-        pin_util.create({'pin_num': 17, 'name': 'lever-9',  'direction': 'in', 'falling_url': f'{host}/lever/9/N', 'rising_url': f'{host}/lever/9/R'})
-        pin_util.create({'pin_num': 27, 'name': 'lever-10',  'direction': 'in', 'falling_url': f'{host}/lever/10/N', 'rising_url': f'{host}/lever/10/R'})
-        pin_util.create({'pin_num': 22, 'name': 'lever-11',  'direction': 'in', 'falling_url': f'{host}/lever/11/N', 'rising_url': f'{host}/lever/11/R'})
-        pin_util.create({'pin_num':  5, 'name': 'lever-12',  'direction': 'in', 'falling_url': f'{host}/lever/12/N', 'rising_url': f'{host}/lever/12/R'})
-        pin_util.create({'pin_num':  6, 'name': 'lever-13',  'direction': 'in', 'falling_url': f'{host}/lever/13/N', 'rising_url': f'{host}/lever/13/R', 'falling-serial': '13N', 'rising-serial': '13R'})
-        pin_util.create({'pin_num': 13, 'name': 'lever-14',  'direction': 'in', 'falling_url': f'{host}/lever/14/N', 'rising_url': f'{host}/lever/14/R', 'falling_video': '1-Gates-opening.mp4', 'rising_video': '2-Gates-closing.mp4'})
+        pin_util.set_pull_up_down(GPIO.PUD_DOWN)
 
+        pin_util.create({'pin_num': 18, 'name': 'lever-1',  'direction': 'in', 'falling_url': f'{host}/lever/1/N', 'rising_url': f'{host}/lever/1/R'})
+        pin_util.create({'pin_num': 23, 'name': 'lever-2',  'direction': 'in', 'falling_url': f'{host}/lever/2/N', 'rising_url': f'{host}/lever/2/R'})
+        pin_util.create({'pin_num': 24, 'name': 'lever-3',  'direction': 'in', 'falling_url': f'{host}/lever/3/N', 'rising_url': f'{host}/lever/3/R'})
+        pin_util.create({'pin_num': 25, 'name': 'lever-4',  'direction': 'in', 'falling_url': f'{host}/lever/4/N', 'rising_url': f'{host}/lever/4/R', 'falling-serial': '4N', 'rising-serial': '4R'})
+        pin_util.create({'pin_num': 12, 'name': 'lever-5',  'direction': 'in', 'falling_url': f'{host}/lever/5/N', 'rising_url': f'{host}/lever/5/R'})
+        pin_util.create({'pin_num': 16, 'name': 'lever-6',  'direction': 'in', 'falling_url': f'{host}/lever/6/N', 'rising_url': f'{host}/lever/6/R'})
+        pin_util.create({'pin_num': 20, 'name': 'lever-7',  'direction': 'in', 'falling_url': f'{host}/lever/7/N', 'rising_url': f'{host}/lever/7/R'})
+        # pin_util.create({'pin_num': 21, 'name': 'spare',   'direction': 'in', 'falling_url': f'{host}/lever/x/N', 'rising_url': f'{host}/lever/x/R'})
+
+        pin_util.create({'pin_num': 17, 'name': 'lever-8',  'direction': 'in', 'falling_url': f'{host}/lever/8/N', 'rising_url': f'{host}/lever/8/R'})
+        pin_util.create({'pin_num': 27, 'name': 'lever-9',  'direction': 'in', 'falling_url': f'{host}/lever/9/N', 'rising_url': f'{host}/lever/9/R'})
+        pin_util.create({'pin_num': 22, 'name': 'lever-10',  'direction': 'in', 'falling_url': f'{host}/lever/10/N', 'rising_url': f'{host}/lever/10/R'})
+        pin_util.create({'pin_num':  5, 'name': 'lever-11',  'direction': 'in', 'falling_url': f'{host}/lever/11/N', 'rising_url': f'{host}/lever/11/R'})
+        pin_util.create({'pin_num':  6, 'name': 'lever-12',  'direction': 'in', 'falling_url': f'{host}/lever/12/N', 'rising_url': f'{host}/lever/12/R'})
+        pin_util.create({'pin_num': 13, 'name': 'lever-13',  'direction': 'in', 'falling_url': f'{host}/lever/13/N', 'rising_url': f'{host}/lever/13/R', 'falling-serial': '13N', 'rising-serial': '13R'})
+        pin_util.create({'pin_num': 19, 'name': 'lever-14',  'direction': 'in', 'falling_url': f'{host}/lever/14/N', 'rising_url': f'{host}/lever/14/R', 'falling_video': '1-Gates-opening.mp4', 'rising_video': '2-Gates-closing.mp4'})
+        # pin_util.create({'pin_num': 26, 'name': 'spare2',   'direction': 'in', 'falling_url': f'{host}/lever/y/N', 'rising_url': f'{host}/lever/y/R'})
 
     app.run(debug=False, host='0.0.0.0')
