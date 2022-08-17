@@ -314,14 +314,12 @@ if __name__ == '__main__':
     pin_util = PinUtil()
 
     if len(sys.argv) > 1:
-        host = sys.argv[1]
-
-    print (f"host is {host}")
+        mode = sys.argv[1]
 
     if len(sys.argv) > 2:
-        mode = sys.argv[2]
+        host = sys.argv[2]
 
-    print (f"mode is {mode}")
+    print (f"mode is {mode}, host is {host}")
 
     if mode == 'vidlooper':
         pin_util.set_pull_up_down(GPIO.PUD_UP)
