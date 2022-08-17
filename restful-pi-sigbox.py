@@ -86,20 +86,20 @@ class PinUtil(object):
             if 'rising_video' in pin:
                 filename = pin['rising_video']
                 if not os.path.exists(filename):
-                    if os.path.exists(f"/home/pi/Videos/{filename}"):
-                        pin['rising_video'] = f"/home/pi/Videos/{filename}"
-                        print(f"rising_video is /home/pi/Videos/{filename}")
+                    if os.path.exists(f"/home/pi/{filename}"):
+                        pin['rising_video'] = f"/home/pi/{filename}"
+                        print(f"rising_video is /home/pi/{filename}")
                     else:
-                        print(f"Can't find {filename} or /home/pi/Videos/{filename}")
+                        print(f"Can't find {filename} or /home/pi/{filename}")
 
             if 'falling_video' in pin:
                 filename = pin['falling_video']
                 if not os.path.exists(filename):
-                    if os.path.exists(f"/home/pi/Videos/{filename}"):
-                        pin['falling_video'] = f"/home/pi/Videos/{filename}"
-                        print(f"falling_video is /home/pi/Videos/{filename}")
+                    if os.path.exists(f"/home/pi/{filename}"):
+                        pin['falling_video'] = f"/home/pi/{filename}"
+                        print(f"falling_video is /home/pi/{filename}")
                     else:
-                        print(f"Can't find {filename} or /home/pi/Videos/{filename}")
+                        print(f"Can't find {filename} or /home/pi/{filename}")
 
             if 'rising_url' in pin:
                 if 'falling_url' in pin:
@@ -323,6 +323,7 @@ if __name__ == '__main__':
 
     if mode == 'vidlooper':
         pin_util.set_pull_up_down(GPIO.PUD_UP)
+        splash = "Videos/Edwardian Lowdham.jpg"
 
         pin_util.create({'pin_num': 21, 'name': 'led1', 'state': 'off', 'direction': 'out'})
         pin_util.create({'pin_num': 20, 'name': 'led2', 'state': 'off', 'direction': 'out'})
@@ -336,6 +337,7 @@ if __name__ == '__main__':
 
     elif mode == 'block':
         pin_util.set_pull_up_down(GPIO.PUD_UP)
+        splash = None
 
         pin_util.create({'pin_num': 21, 'name': 'appr_bell',  'state': 'off', 'direction': 'out'})
         pin_util.create({'pin_num': 20, 'name': 'tc4601',     'state': 'off', 'direction': 'out'})
@@ -355,8 +357,10 @@ if __name__ == '__main__':
 
     elif mode ==  'levers':
         pin_util.set_pull_up_down(GPIO.PUD_DOWN)
+        splash = "Videos/Lowdham in 1956 Malcolm Fletcher.jpg"
+        # splash = "Videos/8 (photographer Spree) - Spree died 1932.jpg"
 
-        pin_util.create({'pin_num': 18, 'name': 'lever-1',  'direction': 'in', 'falling_url': f'{host}/lever/1/N', 'rising_url': f'{host}/lever/1/R'})
+        pin_util.create({'pin_num': 18, 'name': 'lever-1',  'direction': 'in', 'falling_url': f'{host}/lever/1/N', 'rising_url': f'{host}/lever/1/R','falling_video': 'Sounds/3-Down Stopping local-L-R.mp3'})
         pin_util.create({'pin_num': 23, 'name': 'lever-2',  'direction': 'in', 'falling_url': f'{host}/lever/2/N', 'rising_url': f'{host}/lever/2/R'})
         pin_util.create({'pin_num': 24, 'name': 'lever-3',  'direction': 'in', 'falling_url': f'{host}/lever/3/N', 'rising_url': f'{host}/lever/3/R'})
         pin_util.create({'pin_num': 25, 'name': 'lever-4',  'direction': 'in', 'falling_url': f'{host}/lever/4/N', 'rising_url': f'{host}/lever/4/R', 'falling-serial': '4N', 'rising-serial': '4R'})
@@ -368,10 +372,16 @@ if __name__ == '__main__':
         pin_util.create({'pin_num': 17, 'name': 'lever-8',  'direction': 'in', 'falling_url': f'{host}/lever/8/N', 'rising_url': f'{host}/lever/8/R'})
         pin_util.create({'pin_num': 27, 'name': 'lever-9',  'direction': 'in', 'falling_url': f'{host}/lever/9/N', 'rising_url': f'{host}/lever/9/R'})
         pin_util.create({'pin_num': 22, 'name': 'lever-10',  'direction': 'in', 'falling_url': f'{host}/lever/10/N', 'rising_url': f'{host}/lever/10/R'})
-        pin_util.create({'pin_num':  5, 'name': 'lever-11',  'direction': 'in', 'falling_url': f'{host}/lever/11/N', 'rising_url': f'{host}/lever/11/R'})
+        pin_util.create({'pin_num':  5, 'name': 'lever-11',  'direction': 'in', 'falling_url': f'{host}/lever/11/N', 'rising_url': f'{host}/lever/11/R', 'falling-serial': '10N', 'rising-serial': '10R'}})
         pin_util.create({'pin_num':  6, 'name': 'lever-12',  'direction': 'in', 'falling_url': f'{host}/lever/12/N', 'rising_url': f'{host}/lever/12/R'})
-        pin_util.create({'pin_num': 13, 'name': 'lever-13',  'direction': 'in', 'falling_url': f'{host}/lever/13/N', 'rising_url': f'{host}/lever/13/R', 'falling-serial': '13N', 'rising-serial': '13R'})
-        pin_util.create({'pin_num': 19, 'name': 'lever-14',  'direction': 'in', 'falling_url': f'{host}/lever/14/N', 'rising_url': f'{host}/lever/14/R', 'falling_video': '1-Gates-opening.mp4', 'rising_video': '2-Gates-closing.mp4'})
+        pin_util.create({'pin_num': 13, 'name': 'lever-13',  'direction': 'in', 'falling_url': f'{host}/lever/13/N', 'rising_url': f'{host}/lever/13/R','falling_video': 'Sounds/4-Up Steam train non-stop R-L.mp3')
+        pin_util.create({'pin_num': 19, 'name': 'lever-14',  'direction': 'in', 'falling_url': f'{host}/lever/14/N', 'rising_url': f'{host}/lever/14/R', 'rising_video': 'Videos/1-Gates-opening.mp4', 'falling_video': 'Videos/2-Gates-closing.mp4'})
         # pin_util.create({'pin_num': 26, 'name': 'spare2',   'direction': 'in', 'falling_url': f'{host}/lever/y/N', 'rising_url': f'{host}/lever/y/R'})
 
+    if splash:
+        _splashproc = Popen(['fbi', '--noverbose', '-a', splash])
+
     app.run(debug=False, host='0.0.0.0')
+
+    if _splashproc:
+        os.killpg(os.getpgid(_splashproc.pid), signal.SIGKILL)
