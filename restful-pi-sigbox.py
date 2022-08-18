@@ -190,7 +190,7 @@ class PinUtil(object):
                                 self.switch_vid(pin['rising_video'])
                             if 'rising_serial' in pin:
                                 print('Calling rising_serial', pin['rising_serial'], new_state)
-                                ser.write(pin['rising_serial'])
+                                # ser.write(pin['rising_serial'])
                         if new_state == 'off':
                             if 'falling_url' in pin:
                                 print('Calling falling_url', pin['falling_url'], new_state)
@@ -200,7 +200,7 @@ class PinUtil(object):
                                 self.switch_vid(pin['falling_video'])
                             if 'falling_serial' in pin:
                                 print('Calling falling_serial', pin['falling_serial'], new_state)
-                                ser.write(pin['falling_serial'])
+                                # ser.write(pin['falling_serial'])
                     return
 
 # Following based on vidlooper.py
@@ -211,7 +211,7 @@ class PinUtil(object):
 
         if filename != self._active_vid:
             # Kill any previous video player process
-            # self._kill_process()
+            self._kill_process()
             # Start a new video player process, capture STDOUT to keep the
             # screen clear. Set a session ID (os.setsid) to allow us to kill
             cmd = ['cvlc', '--fullscreen', f"file://{filename}"]
@@ -363,10 +363,12 @@ if __name__ == '__main__':
         splash = "/home/pi/Pictures/Lowdham in 1956 Malcolm Fletcher.jpg"
         # splash = "Videos/8 (photographer Spree) - Spree died 1932.jpg"
 
-        pin_util.create({'pin_num': 18, 'name': 'lever-1',  'direction': 'in', 'falling_url': f'{host}/lever/1/R', 'rising_url': f'{host}/lever/1/N','falling_video': '/home/pi/Music/3-Down Stopping local-L-R.mp3'})
+        pin_util.create({'pin_num': 18, 'name': 'lever-1',  'direction': 'in', 'falling_url': f'{host}/lever/1/R', 'rising_url': f'{host}/lever/1/N',
+                         'falling_video': '/home/pi/Music/3-Stopping local-L-R.mp3'})
         pin_util.create({'pin_num': 23, 'name': 'lever-2',  'direction': 'in', 'falling_url': f'{host}/lever/2/R', 'rising_url': f'{host}/lever/2/N'})
         pin_util.create({'pin_num': 24, 'name': 'lever-3',  'direction': 'in', 'falling_url': f'{host}/lever/3/R', 'rising_url': f'{host}/lever/3/N'})
-        pin_util.create({'pin_num': 25, 'name': 'lever-4',  'direction': 'in', 'falling_url': f'{host}/lever/4/R', 'rising_url': f'{host}/lever/4/N', 'falling-serial': '4N', 'rising-serial': '4R'})
+        pin_util.create({'pin_num': 25, 'name': 'lever-4',  'direction': 'in', 'falling_url': f'{host}/lever/4/R', 'rising_url': f'{host}/lever/4/N',
+                         'falling_serial': '4N', 'rising_serial': '4R'})
         pin_util.create({'pin_num': 12, 'name': 'lever-5',  'direction': 'in', 'falling_url': f'{host}/lever/5/R', 'rising_url': f'{host}/lever/5/N'})
         pin_util.create({'pin_num': 16, 'name': 'lever-6',  'direction': 'in', 'falling_url': f'{host}/lever/6/R', 'rising_url': f'{host}/lever/6/N'})
         pin_util.create({'pin_num': 20, 'name': 'lever-7',  'direction': 'in', 'falling_url': f'{host}/lever/7/R', 'rising_url': f'{host}/lever/7/N'})
@@ -375,10 +377,13 @@ if __name__ == '__main__':
         pin_util.create({'pin_num': 17, 'name': 'lever-8',  'direction': 'in', 'falling_url': f'{host}/lever/8/R', 'rising_url': f'{host}/lever/8/N'})
         pin_util.create({'pin_num': 27, 'name': 'lever-9',  'direction': 'in', 'falling_url': f'{host}/lever/9/R', 'rising_url': f'{host}/lever/9/N'})
         pin_util.create({'pin_num': 22, 'name': 'lever-10',  'direction': 'in', 'falling_url': f'{host}/lever/10/R', 'rising_url': f'{host}/lever/10/N'})
-        pin_util.create({'pin_num':  5, 'name': 'lever-11',  'direction': 'in', 'falling_url': f'{host}/lever/11/R', 'rising_url': f'{host}/lever/11/N', 'falling-serial': '10N', 'rising-serial': '10R'})
+        pin_util.create({'pin_num':  5, 'name': 'lever-11',  'direction': 'in', 'falling_url': f'{host}/lever/11/R', 'rising_url': f'{host}/lever/11/N',
+                         'falling_serial': '10N', 'rising_serial': '10R'})
         pin_util.create({'pin_num':  6, 'name': 'lever-12',  'direction': 'in', 'falling_url': f'{host}/lever/12/R', 'rising_url': f'{host}/lever/12/N'})
-        pin_util.create({'pin_num': 13, 'name': 'lever-13',  'direction': 'in', 'falling_url': f'{host}/lever/13/R', 'rising_url': f'{host}/lever/13/N', 'falling_video': '/home/pi/Music/4-Up Steam train non-stop R-L.mp3'})
-        pin_util.create({'pin_num': 19, 'name': 'lever-14',  'direction': 'in', 'falling_url': f'{host}/lever/14/R', 'rising_url': f'{host}/lever/14/N', 'rising_video': 'Videos/1-Gates-opening.mp4', 'falling_video': 'Videos/2-Gates-closing.mp4'})
+        pin_util.create({'pin_num': 13, 'name': 'lever-13',  'direction': 'in', 'falling_url': f'{host}/lever/13/R', 'rising_url': f'{host}/lever/13/N',
+                         'falling_video': '/home/pi/Music/4-Steam train non-stop R-L.mp3'})
+        pin_util.create({'pin_num': 19, 'name': 'lever-14',  'direction': 'in', 'falling_url': f'{host}/lever/14/R', 'rising_url': f'{host}/lever/14/N',
+                         'rising_video': '/home/pi/Videos/1-Gates-opening.mp4', 'falling_video': '/home/pi/Videos/2-Gates-closing.mp4'})
         # pin_util.create({'pin_num': 26, 'name': 'spare2',   'direction': 'in', 'falling_url': f'{host}/lever/y/R', 'rising_url': f'{host}/lever/y/N'})
 
     if splash:
