@@ -172,6 +172,30 @@ class PinUtil(object):
                 self.last_pinchange_time = time.clock_gettime(1)
             new_state = 'on' if GPIO.input(pin_num) else 'off'
             # print (f"pin {pin_num} state {new_state}")
+
+            # If we are a shutdown pin
+            # And all the shutdown pins are set
+            # And all the shutdown inhibit pins are NOT set
+            # then
+            #   os.system("sudo halt")
+            #   os.system("sudo shutdown -h now")
+            if pin_num in shutdown_pins and new_state = 'on':
+                shutdown_reqd = True
+                print(f"Pin {pin_num} is a shutdown pin, so testing if shutdown required")
+                # If any shutdown pin is not set, then we don't shutdown
+                for p in shutdown_pins:
+                    if not GPIO.input(p):
+                        print(f"Pin {p} is not set, so shutdown not required")
+                        shutdown_reqd = False
+                # If any shutdown Inhibit pin IS set, then we don't shutdown
+                for p in shutdown_inhibit_pins:
+                    if GPIO.input(p):
+                        print(f"Pin {p} is set, so shutdown not required")
+                        shutdown_reqd = False
+                if shutdown_required:
+                    print(f"Shutting down")
+                    os.system("sudo halt")
+
             # Look for a 'pin' on this pin_num
             for pin in pin_util.pins:
                 # print (f"Comparing {pin_num} to {pin['pin_num']} and {pin['state']} to {new_state}")
@@ -327,6 +351,9 @@ if __name__ == '__main__':
     if mode == 'vidlooper':
         pin_util.set_pull_up_down(GPIO.PUD_UP)
         splash = "/home/pi/Pictures/Edwardian Lowdham.jpg"
+        # Shutdown by pressing buttons 1 and 2 for 2 seconds
+        shutdown_pins = [26, 19]
+        shutdown_inhibit_pins = []
 
         pin_util.create({'pin_num': 21, 'name': 'led1', 'state': 'off', 'direction': 'out'})
         pin_util.create({'pin_num': 20, 'name': 'led2', 'state': 'off', 'direction': 'out'})
@@ -341,6 +368,9 @@ if __name__ == '__main__':
     elif mode == 'block':
         pin_util.set_pull_up_down(GPIO.PUD_UP)
         splash = None
+        # Shutdown by pressing both bell tappers for 2 seconds
+        shutdown_pins = [17, 13]
+        shutdown_inhibit_pins = []
 
         pin_util.create({'pin_num': 21, 'name': 'appr_bell',  'state': 'off', 'direction': 'out'})
         pin_util.create({'pin_num': 20, 'name': 'tc4601',     'state': 'off', 'direction': 'out'})
@@ -362,6 +392,10 @@ if __name__ == '__main__':
         pin_util.set_pull_up_down(GPIO.PUD_DOWN)
         splash = "/home/pi/Pictures/Lowdham in 1956 Malcolm Fletcher.jpg"
         # splash = "Videos/8 (photographer Spree) - Spree died 1932.jpg"
+
+        # Shutdown by pulling both starters (levers 3 and 11] but with homes at danger [levers 2 and 12]
+        shutdown_pins = [24, 5]
+        shutdown_inhibit_pins = [23, 6]
 
         pin_util.create({'pin_num': 18, 'name': 'lever-1',  'direction': 'in', 'falling_url': f'{host}/lever/1/R', 'rising_url': f'{host}/lever/1/N',
                          'falling_video': '/home/pi/Music/3-Stopping local-L-R.mp3'})
