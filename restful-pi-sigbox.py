@@ -49,6 +49,9 @@ class PinUtil(object):
         self._mutex = Lock()
         self.debug = 1
         self.pull_up_down = GPIO.PUD_UP
+        self.last_pinchange_time = time.clock_gettime(1)
+        self.last_pinrise_time = time.clock_gettime(1)
+        self.last_pinfall_time = time.clock_gettime(1)
         
         # The currently playing video filename
         self._active_vid = None
@@ -66,11 +69,11 @@ class PinUtil(object):
         print(f"Pull Up or Down = ${pull_up_down}")
 
 
-    def get(self, id):
+    def get(self, p_id):
         for pin in self.pins:
-            if pin['id'] == id:
+            if pin['id'] == p_id:
                 return pin
-        api.abort(404, f"pin {id} doesn't exist.")
+        api.abort(404, f"pin {p_id} doesn't exist.")
 
 
     def create(self, data):
@@ -128,11 +131,11 @@ class PinUtil(object):
         return pin
 
 
-    def update(self, id, data):
-        print("Update", id, "data", data)
+    def update(self, p_id, data):
+        print("Update", p_id, "data", data)
         if data is None:
             api.abort(400, "Must supply data")
-        pin = self.get(id)
+        pin = self.get(p_id)
         pin.update(data)  # this is the dict_object update method
         
         if pin['direction'] == 'in':
@@ -172,6 +175,12 @@ class PinUtil(object):
                 self.last_pinchange_time = time.clock_gettime(1)
             new_state = 'on' if GPIO.input(pin_num) else 'off'
             # print (f"pin {pin_num} state {new_state}")
+            
+            # Record the rise or fall time
+            if new_state = 'on':
+                self.last_pinrise_time = time.clock_gettime(1)
+            else:
+                self.last_pinfall_time = time.clock_gettime(1)
 
             # If we are a shutdown pin
             # And all the shutdown pins are set
@@ -179,7 +188,7 @@ class PinUtil(object):
             # then
             #   os.system("sudo halt")
             #   os.system("sudo shutdown -h now")
-            if pin_num in shutdown_pins and new_state = 'on':
+            if pin_num in shutdown_pins and new_state == 'on':
                 shutdown_reqd = True
                 print(f"Pin {pin_num} is a shutdown pin, so testing if shutdown required")
                 # If any shutdown pin is not set, then we don't shutdown
@@ -192,9 +201,10 @@ class PinUtil(object):
                     if GPIO.input(p):
                         print(f"Pin {p} is set, so shutdown not required")
                         shutdown_reqd = False
-                if shutdown_required:
+                if shutdown_reqd:
                     print(f"Shutting down")
                     os.system("sudo halt")
+                    timer.sleep(1)
 
             # Look for a 'pin' on this pin_num
             for pin in pin_util.pins:
@@ -278,23 +288,23 @@ class Pin(Resource):
     """Show a single pin item and lets you update it"""
 
     @ns.marshal_with(pin_model)
-    def get(self, id):
+    def get(self, p_id):
         """Fetch a pin given its resource identifier. Optionally set the state"""
         parser = reqparse.RequestParser()
         parser.add_argument('state', choices=('on', 'off', 'pulse', 'pulse01') )
         args = parser.parse_args()
-        print('Get pin ID', id, args)
+        print('Get pin ID', p_id, args)
         if args['state']:
-            return pin_util.update(id, args)
-        return pin_util.get(id)
+            return pin_util.update(p_id, args)
+        return pin_util.get(p_id)
 
     # @ns.expect(pin_model, validate=True)
     @ns.expect(pin_model)
     @ns.marshal_with(pin_model)
-    def put(self, id):
-        print('Put pin ID', id, "payload", api.payload)
+    def put(self, p_id):
+        print('Put pin ID', p_id, "payload", api.payload)
         """Update a pin given its identifier (Not working, as api.payload returns None)"""
-        return pin_util.update(id, api.payload)
+        return pin_util.update(p_id, api.payload)
 
 @ns.route('/name/<string:name>')
 @ns.response(404, 'pin not found')
@@ -332,6 +342,14 @@ class PinName(Resource):
                 return pin_util.update(pin['id'], api.payload)
         api.abort(404, f"pin {name} doesn't exist.")
 
+# TODO
+# Timer routine called every 0.1 seconds
+# If distant rise_time < (now - 5 seconds) and no audio playing
+# Then start fast train audio
+# Else if Home rise time < (now - 8 seconds) and no audio playing
+# Then start stopping train audio
+
+
 
 if __name__ == '__main__':
     GPIO.setmode(GPIO.BCM)
@@ -347,6 +365,9 @@ if __name__ == '__main__':
         host = sys.argv[2]
 
     print (f"mode is {mode}, host is {host}")
+    
+    # TODO: start a timer thread
+    # See https://stackoverflow.com/questions/12435211/threading-timer-repeat-function-every-n-seconds
 
     if mode == 'vidlooper':
         pin_util.set_pull_up_down(GPIO.PUD_UP)
@@ -399,24 +420,24 @@ if __name__ == '__main__':
 
         pin_util.create({'pin_num': 18, 'name': 'lever-1',  'direction': 'in', 'falling_url': f'{host}/lever/1/R', 'rising_url': f'{host}/lever/1/N',
                          'falling_video': '/home/pi/Music/3-Stopping local-L-R.mp3'})
-        pin_util.create({'pin_num': 23, 'name': 'lever-2',  'direction': 'in', 'falling_url': f'{host}/lever/2/R', 'rising_url': f'{host}/lever/2/N'})
-        pin_util.create({'pin_num': 24, 'name': 'lever-3',  'direction': 'in', 'falling_url': f'{host}/lever/3/R', 'rising_url': f'{host}/lever/3/N'})
-        pin_util.create({'pin_num': 25, 'name': 'lever-4',  'direction': 'in', 'falling_url': f'{host}/lever/4/R', 'rising_url': f'{host}/lever/4/N',
-                         'falling_serial': '4N', 'rising_serial': '4R'})
-        pin_util.create({'pin_num': 12, 'name': 'lever-5',  'direction': 'in', 'falling_url': f'{host}/lever/5/R', 'rising_url': f'{host}/lever/5/N'})
-        pin_util.create({'pin_num': 16, 'name': 'lever-6',  'direction': 'in', 'falling_url': f'{host}/lever/6/R', 'rising_url': f'{host}/lever/6/N'})
-        pin_util.create({'pin_num': 20, 'name': 'lever-7',  'direction': 'in', 'falling_url': f'{host}/lever/7/R', 'rising_url': f'{host}/lever/7/N'})
+        #pin_util.create({'pin_num': 23, 'name': 'lever-2',  'direction': 'in', 'falling_url': f'{host}/lever/2/R', 'rising_url': f'{host}/lever/2/N'})
+        #pin_util.create({'pin_num': 24, 'name': 'lever-3',  'direction': 'in', 'falling_url': f'{host}/lever/3/R', 'rising_url': f'{host}/lever/3/N'})
+        #pin_util.create({'pin_num': 25, 'name': 'lever-4',  'direction': 'in', 'falling_url': f'{host}/lever/4/R', 'rising_url': f'{host}/lever/4/N',
+        #                 'falling_serial': '4N', 'rising_serial': '4R'})
+        #pin_util.create({'pin_num': 12, 'name': 'lever-5',  'direction': 'in', 'falling_url': f'{host}/lever/5/R', 'rising_url': f'{host}/lever/5/N'})
+        #pin_util.create({'pin_num': 16, 'name': 'lever-6',  'direction': 'in', 'falling_url': f'{host}/lever/6/R', 'rising_url': f'{host}/lever/6/N'})
+        #pin_util.create({'pin_num': 20, 'name': 'lever-7',  'direction': 'in', 'falling_url': f'{host}/lever/7/R', 'rising_url': f'{host}/lever/7/N'})
         # pin_util.create({'pin_num': 21, 'name': 'spare',   'direction': 'in', 'falling_url': f'{host}/lever/x/R', 'rising_url': f'{host}/lever/x/N'})
 
-        pin_util.create({'pin_num': 17, 'name': 'lever-8',  'direction': 'in', 'falling_url': f'{host}/lever/8/R', 'rising_url': f'{host}/lever/8/N'})
-        pin_util.create({'pin_num': 27, 'name': 'lever-9',  'direction': 'in', 'falling_url': f'{host}/lever/9/R', 'rising_url': f'{host}/lever/9/N'})
-        pin_util.create({'pin_num': 22, 'name': 'lever-10',  'direction': 'in', 'falling_url': f'{host}/lever/10/R', 'rising_url': f'{host}/lever/10/N'})
-        pin_util.create({'pin_num':  5, 'name': 'lever-11',  'direction': 'in', 'falling_url': f'{host}/lever/11/R', 'rising_url': f'{host}/lever/11/N',
+        #pin_util.create({'pin_num': 17, 'name': 'lever-8',  'direction': 'in', 'falling_url': f'{host}/lever/8/R', 'rising_url': f'{host}/lever/8/N'})
+        #pin_util.create({'pin_num': 27, 'name': 'lever-9',  'direction': 'in', 'falling_url': f'{host}/lever/9/R', 'rising_url': f'{host}/lever/9/N'})
+        ##pin_util.create({'pin_num': 22, 'name': 'lever-10',  'direction': 'in', 'falling_url': f'{host}/lever/10/R', 'rising_url': f'{host}/lever/10/N'})
+        #pin_util.create({'pin_num':  5, 'name': 'lever-11',  'direction': 'in', 'falling_url': f'{host}/lever/11/R', 'rising_url': f'{host}/lever/11/N',
                          'falling_serial': '10N', 'rising_serial': '10R'})
-        pin_util.create({'pin_num':  6, 'name': 'lever-12',  'direction': 'in', 'falling_url': f'{host}/lever/12/R', 'rising_url': f'{host}/lever/12/N'})
-        pin_util.create({'pin_num': 13, 'name': 'lever-13',  'direction': 'in', 'falling_url': f'{host}/lever/13/R', 'rising_url': f'{host}/lever/13/N',
+        #pin_util.create({'pin_num':  6, 'name': 'lever-12',  'direction': 'in', 'falling_url': f'{host}/lever/12/R', 'rising_url': f'{host}/lever/12/N'})
+        pin_util.create({'pin_num': 23, 'name': 'lever-13',  'direction': 'in', 'falling_url': f'{host}/lever/13/R', 'rising_url': f'{host}/lever/13/N',
                          'falling_video': '/home/pi/Music/4-Steam train non-stop R-L.mp3'})
-        pin_util.create({'pin_num': 19, 'name': 'lever-14',  'direction': 'in', 'falling_url': f'{host}/lever/14/R', 'rising_url': f'{host}/lever/14/N',
+        pin_util.create({'pin_num': 24, 'name': 'lever-14',  'direction': 'in', 'falling_url': f'{host}/lever/14/R', 'rising_url': f'{host}/lever/14/N',
                          'rising_video': '/home/pi/Videos/1-Gates-opening.mp4', 'falling_video': '/home/pi/Videos/2-Gates-closing.mp4'})
         # pin_util.create({'pin_num': 26, 'name': 'spare2',   'direction': 'in', 'falling_url': f'{host}/lever/y/R', 'rising_url': f'{host}/lever/y/N'})
 
